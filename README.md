@@ -8,6 +8,14 @@
 # Davide
 - Drone display
 - Input
+
+## parameter file
+- scala input
+- massa drone
+- valori attrito
+- altre costanti del drone
+
+
 # Valentina
 - Server
 - Watchdog
