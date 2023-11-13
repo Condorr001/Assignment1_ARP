@@ -6,7 +6,8 @@
 #include <sys/select.h>
 #include <unistd.h> 
 #include <stdlib.h>
-#include "include/constants.h"
+#include "wrapFuncs/wrapFunc.h"
+#include "constants.h"
 #include <semaphore.h>
 #include <sys/mman.h>
 
