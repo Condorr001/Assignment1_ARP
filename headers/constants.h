@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #define MASTER_CHILDS 4
+#define NUM_PROCESSES 3
 
 #define SHMOBJ_PATH "/shm_server"
 #define SEM_PATH "/sem_server"

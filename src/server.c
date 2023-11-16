@@ -7,9 +7,33 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <unistd.h>
 
+//WD pid
+pid_t WD_pid;
+
+void signal_handler (int signo, siginfo_t *info, void *context) {
+    if (signo == SIGUSR1) {
+        WD_pid = info->si_pid;
+        kill(WD_pid, SIGUSR2);
+    }
+}
+
 int main(int argc, char *argv[]) {
+    //signal setup
+    struct sigaction sa;
+    //memset(&sa, 0, sizeof(sa));
+
+    sa.sa_sigaction = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_SIGINFO;
+
+    if(sigaction(SIGUSR1, &sa, NULL) < 0) {
+        perror("SIGUSR1: sigaction()");
+        exit(1);
+    }
+
     int server_map[2];
     Pipe(server_map);
 
@@ -69,6 +93,7 @@ int main(int argc, char *argv[]) {
         return 0;
 
     } else {
+        
         // closing the writing end of the map side
         close(server_map[1]);
 

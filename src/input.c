@@ -16,7 +16,7 @@ pid_t WD_pid;
 
 void signal_handler (int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
-        sleep(1);
+        sleep(2);
         WD_pid = info->si_pid;
         kill(WD_pid, SIGUSR2);
     }
