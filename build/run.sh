@@ -1,1 +1,1 @@
-konsole -e ./main &
+konsole -e ./master &
