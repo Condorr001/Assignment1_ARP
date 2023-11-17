@@ -1,19 +1,19 @@
 #include "constants.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <signal.h>
 #include <unistd.h>
 
-//WD pid
+// WD pid
 pid_t WD_pid;
 
-void signal_handler (int signo, siginfo_t *info, void *context) {
+void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
         kill(WD_pid, SIGUSR2);
@@ -21,15 +21,15 @@ void signal_handler (int signo, siginfo_t *info, void *context) {
 }
 
 int main(int argc, char *argv[]) {
-    //signal setup
+    // signal setup
     struct sigaction sa;
-    //memset(&sa, 0, sizeof(sa));
+    // memset(&sa, 0, sizeof(sa));
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_SIGINFO;
 
-    if(sigaction(SIGUSR1, &sa, NULL) < 0) {
+    if (sigaction(SIGUSR1, &sa, NULL) < 0) {
         perror("SIGUSR1: sigaction()");
         exit(1);
     }
@@ -46,15 +46,15 @@ int main(int argc, char *argv[]) {
 
         // initialize semaphore
         sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
-        Sem_init(sem_id, 1,
-                 0); // initialized to 0 until shared memory is instantiated
+        // initialized to 0 until shared memory is instantiated
+        Sem_init(sem_id, 1, 1);
 
         // here goes what is shared with the drone (where is it, direction of
         // movement etc.) My idea is to have a shared string where the drone
         // writes its state, so that the server can read it and write it in the
         // logfile So something like:
         char status[MAX_STRING_LEN];
-        int shared_seg_size = strlen(status);
+        int shared_seg_size = MAX_SHM_SIZE;
 
         // create shared memory object
         int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
@@ -76,10 +76,9 @@ int main(int argc, char *argv[]) {
             memcpy(status, shm_ptr, shared_seg_size);
             // write in the logfile
             Sem_post(sem_id);
-            
-            
+
             // TODO TEMPORANEO
-            Write(server_map[1],"123.45|234.23", 14);
+            // Write(server_map[1],"123.45|234.23", 14);
 
             sleep(2);
         }
@@ -93,7 +92,7 @@ int main(int argc, char *argv[]) {
         return 0;
 
     } else {
-        
+
         // closing the writing end of the map side
         close(server_map[1]);
 
@@ -102,7 +101,7 @@ int main(int argc, char *argv[]) {
         sprintf(pipe1, "%d", server_map[0]);
 
         // passing the required arguments to the map process
-        char* args[] = {"konsole", "-e", "./map", pipe1, NULL};
+        char *args[] = {"konsole", "-e", "./map", pipe1, NULL};
         Execvp("konsole", args);
     }
 }

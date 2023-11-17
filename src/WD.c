@@ -12,7 +12,7 @@
 #include "constants.h"
 #include "wrapFuncs/wrapFunc.h"
 
-#define DT 3 // Time period for timeout in seconds
+#define DT 300 // Time period for timeout in seconds
 
 //number of processes to monitorate
 int num_processes = NUM_PROCESSES;
@@ -123,6 +123,7 @@ int main(int argc, char *argv[]) {
             }
             start_time = current_time;
         }
+        sleep(10);
     }
 
     return 0;

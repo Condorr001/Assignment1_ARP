@@ -8,7 +8,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static void spawn(char **arg_list) { Execvp(arg_list[0], arg_list); }
+static void spawn(char **arg_list) {
+    Execvp(arg_list[0], arg_list);
+    exit(EXIT_FAILURE);
+}
 
 int main(int argc, char *argv[]) {
     // define the number of programs to spawn
@@ -25,7 +28,7 @@ int main(int argc, char *argv[]) {
     pid_t child[num_children];
 
     // string to contain all che children pids (except WD)
-    char child_pids_str[num_children-1][80];
+    char child_pids_str[num_children - 1][80];
 
     // pipe for the communication between input and drone
     int ItoD[2];
@@ -47,21 +50,32 @@ int main(int argc, char *argv[]) {
                 spawn(arg_list);
             }
 
-            // spawn the drone and the input programs, which need pipe to communicate
-            if (i > 0 && i < num_children-1) {
+            // spawn the drone and the input programs, which need pipe to
+            // communicate
+            // TODO maybe
+            if (i == 2) {
+                char *tmp[] = {"konsole", "-e", "./input", NULL};
+                Execvp("konsole", tmp);
+            }
+            // TODO change back -2 to -1
+            if (i > 0 && i < num_children - 2) {
                 char *arg_list[] = {programs[i], ItoD_string, NULL};
                 spawn(arg_list);
             }
 
-            //spawn the last program, so the WD, which needs all the processes PIDs
-            if (i == num_children-1) {
-                for (int i = 0; i < num_children-1; i++)
+            // spawn the last program, so the WD, which needs all the processes
+            // PIDs
+            if (i == num_children - 1) {
+                for (int i = 0; i < num_children - 1; i++)
                     sprintf(child_pids_str[i], "%d", child[i]);
-                
-                char * arg_list[] = {programs[i], child_pids_str[0], child_pids_str[1], child_pids_str[2], NULL};
+
+                char *arg_list[] = {programs[i], child_pids_str[0],
+                                    child_pids_str[1], child_pids_str[2], NULL};
                 spawn(arg_list);
             }
-        } 
+        } else {
+            printf("Spawned child with pid %d", child[i]);
+        }
     }
 
     printf("Server pid is %d\n", child[0]);
@@ -75,7 +89,6 @@ int main(int argc, char *argv[]) {
         WEXITSTATUS(status);
         printf("Process %d terminated with code: %d\n", ret, status);
     }
-        
 
     return 0;
 }

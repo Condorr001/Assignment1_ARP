@@ -5,16 +5,18 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/select.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #define SELECT_SLEEP_TIME 100
 
-struct drone_pos{
+struct drone_pos {
     float x;
     float y;
-}drone1_pos = {0,0};
+} drone1_pos = {0, 0};
 
 WINDOW *create_map_win(int height, int width, int starty, int startx) {
     WINDOW *local_win;
@@ -23,7 +25,7 @@ WINDOW *create_map_win(int height, int width, int starty, int startx) {
     box(local_win, 0, 0); /* 0, 0 gives default characters
                            * for the vertical and horizontal
                            * lines			*/
-    //wrefresh(local_win);  /* Show that box 		*/
+    // wrefresh(local_win);  /* Show that box 		*/
 
     return local_win;
 }
@@ -56,29 +58,23 @@ int main(int argc, char *argv[]) {
     sigaddset(&mask, SIGWINCH);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
-    // setting up the pipe to receive data from the server
-    int pipe;
-    sscanf(argv[1], "%d", &pipe);
+    // setting up shm to get data
 
-    // setting up the buffer in which to copy the data received from the server
-    char received_data[100];
+    char status[MAX_STRING_LEN];
+    int shared_seg_size = MAX_SHM_SIZE;
 
-    // setting up the sets needed for the select
-    fd_set reader;
-    fd_set master;
+    // initialize semaphor
+    sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
-    // setting up the timer structure that will be used by select
-    struct timeval timer;
-    timer.tv_sec = 0;
-    timer.tv_usec = SELECT_SLEEP_TIME;
+    // create shared memory object
+    int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
-    // clearing the sets
-    FD_ZERO(&reader);
-    FD_ZERO(&master);
+    // truncate size of shared memory
+    Ftruncate(shm, shared_seg_size);
 
-    // adding the receiving end of the pipe to the monitored file descriptors
-    FD_SET(pipe, &master);
-    // reading and ncurses loop
+    // map pointer
+    void *shm_ptr =
+        Mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
     // setting up ncurses
     initscr();
@@ -99,30 +95,27 @@ int main(int argc, char *argv[]) {
         // https://man7.org/linux/man-pages/man3/resizeterm.3x.html
         // handling terminal resizing without the use of SIGWINCH
         ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-        resizeterm(w.ws_row,w.ws_col);
-        reader = master;
-        // note that select with a timeaut has been used in order to guarantee
-        // that ncurses will keep working even if no messages are beeing sent to
-        // the map handler
-        Select(pipe + 1, &reader, NULL, NULL, &timer);
-        // resetting the timer after select execution
-        timer.tv_usec = SELECT_SLEEP_TIME;
-        if (FD_ISSET(pipe, &reader)) {
-            char received[MAX_STRING_LEN];
-            Read(pipe, received, MAX_STRING_LEN);
+        resizeterm(w.ws_row, w.ws_col);
 
-            sscanf(received, "%f|%f", &drone1_pos.x, &drone1_pos.y);
-        }
+        Sem_wait(sem_id);
+        sscanf(shm_ptr, "%f|%f", &drone1_pos.x, &drone1_pos.y);
+        Sem_post(sem_id);
 
         // handling ncurses update
         delwin(main_window);
-        main_window =
-            create_map_win(LINES - 1, COLS, 1, 0);
-        int x = 1 + drone1_pos.x * (getmaxx(main_window)-3) / SIMULATION_WIDTH;
-        int y = 1 + drone1_pos.y * (getmaxy(main_window)-3) / SIMULATION_HEIGHT;
-        mvwprintw(main_window, y,x,"+");
+        main_window = create_map_win(LINES - 1, COLS, 1, 0);
+        int x =
+            1 + drone1_pos.x * (getmaxx(main_window) - 3) / SIMULATION_WIDTH;
+        int y =
+            1 + drone1_pos.y * (getmaxy(main_window) - 3) / SIMULATION_HEIGHT;
+        mvwprintw(main_window, y, x, "+");
         wrefresh(main_window);
+        sleep(1);
     }
+    shm_unlink(SHMOBJ_PATH);
+    Sem_close(sem_id);
+    Sem_unlink(SEM_PATH);
+    munmap(shm_ptr, MAX_SHM_SIZE);
     endwin();
     return EXIT_SUCCESS;
 }
