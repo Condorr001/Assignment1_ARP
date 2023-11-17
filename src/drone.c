@@ -1,4 +1,5 @@
 #include "constants.h"
+#include "dataStructs.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
 #include <signal.h>
@@ -14,15 +15,9 @@
 // WD pid
 pid_t WD_pid;
 
-struct force {
-    float x_component;
-    float y_component;
-} drone_force;
-
-struct pos {
-    float x;
-    float y;
-} drone_current_position;
+// TODO remove from global variables
+struct force drone_force;
+struct pos drone_current_position;
 
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {

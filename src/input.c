@@ -1,3 +1,4 @@
+#include "dataStructs.h"
 #include "constants.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <curses.h>
@@ -133,6 +134,27 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    // initializing data structs;
+    struct force drone_current_force;
+    struct pos drone_current_pos;
+    
+    /// initializing share memory and semaphores
+
+    // initialize semaphor
+    sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    // initialized to 0 until shared memory is instantiated
+    // Sem_init(sem_id, 1, 0);
+
+    // create shared memory object
+    int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
+
+    // truncate size of shared memory
+    Ftruncate(shm, MAX_SHM_SIZE);
+
+    // map pointer
+    void *shm_ptr =
+        Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
+
     initscr();
     cbreak();
     noecho();
@@ -154,7 +176,14 @@ int main(int argc, char *argv[]) {
     WINDOW *br_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 12);
 
     char input;
+
     while (1) {
+        // updating values
+        Sem_wait(sem_id);
+        sscanf(shm_ptr, "%f|%f", &drone_current_pos.x, &drone_current_pos.y);
+        Sem_post(sem_id);
+
+        /// Displaying stuff
         refresh();
         // sleep(1);
         //  waits half second on getch and if nothing is received goes on
@@ -181,8 +210,8 @@ int main(int argc, char *argv[]) {
         mvwprintw(left_split, 0, 1, "INPUT DISPLAY");
         mvwprintw(right_split, 0, 1, "DYNAMICS DISPLAY");
 
-        begin_format_input(input, tl_win, tc_win, tr_win, cl_win, cc_win, cr_win,
-                           bl_win, bc_win, br_win);
+        begin_format_input(input, tl_win, tc_win, tr_win, cl_win, cc_win,
+                           cr_win, bl_win, bc_win, br_win);
 
         mvwprintw(tl_win, 1, 3, "_");
         mvwprintw(tl_win, 2, 2, "'\\");
@@ -226,6 +255,19 @@ int main(int argc, char *argv[]) {
         mvwprintw(bc_win, 4, 0, "'");
         mvwprintw(br_win, 4, 0, "'");
 
+        /// right split
+        mvwprintw(right_split, LINES / 10, COLS / 10, "Score: 0");
+
+        mvwprintw(right_split, LINES / 10 + 2, COLS / 10, "position {");
+        mvwprintw(right_split, LINES / 10 + 3, COLS / 10, "\tx: %f", drone_current_pos.x);
+        mvwprintw(right_split, LINES / 10 + 4, COLS / 10, "\ty: %f", drone_current_pos.y);
+        mvwprintw(right_split, LINES / 10 + 5, COLS / 10, "}");
+
+        mvwprintw(right_split, LINES / 10 + 7, COLS / 10, "force {");
+        mvwprintw(right_split, LINES / 10 + 8, COLS / 10, "\tx: ");
+        mvwprintw(right_split, LINES / 10 + 9, COLS / 10, "\ty: ");
+        mvwprintw(right_split, LINES / 10 + 10, COLS / 10, "}");
+
         wrefresh(left_split);
         wrefresh(right_split);
         wrefresh(tl_win);
@@ -241,5 +283,9 @@ int main(int argc, char *argv[]) {
 
     endwin();
 
+    shm_unlink(SHMOBJ_PATH);
+    Sem_close(sem_id);
+    Sem_unlink(SEM_PATH);
+    munmap(shm_ptr, MAX_SHM_SIZE);
     return 0;
 }

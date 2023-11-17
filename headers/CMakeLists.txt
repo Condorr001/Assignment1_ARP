@@ -13,9 +13,16 @@ target_include_directories(
     )
 
 add_library(constants INTERFACE)
+add_library(datastructs INTERFACE)
 
 target_include_directories(
     constants
+    INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../headers>
+    )
+
+target_include_directories(
+    datastructs
     INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../headers>
     )
