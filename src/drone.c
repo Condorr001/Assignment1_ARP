@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <utils/utils.h>
 
 // WD pid
 pid_t WD_pid;
@@ -27,18 +28,21 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     }
 }
 
+float repulsive_force(float distance) {
+    return 10*(20 - distance) / (distance / 10);
+}
+
 int main(int argc, char *argv[]) {
     // setup initial constants
-    float F = 10;
-    float M = 1;
-    float T = 0.1;
-    float K = 1;
+    float F = get_param("drone", "force_step");
+    float M = get_param("drone", "mass");
+    float T = get_param("drone", "time_step");
+    float K = get_param("drone", "viscous_coefficient");
     float xt_1, xt_2;
     float yt_1, yt_2;
-    xt_1 = xt_2 = 10;
-    yt_1 = yt_2 = 10;
-    drone_current_position.x = 10;
-    drone_current_position.y = 10;
+    struct force walls;
+    drone_current_position.x = xt_1 = xt_2 = get_param("drone", "init_pos_x");
+    drone_current_position.y = yt_1 = yt_2 = get_param("drone", "init_pos_y");
     drone_force.x_component = 0;
     drone_force.y_component = 0;
 
@@ -76,14 +80,32 @@ int main(int argc, char *argv[]) {
         sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                &drone_force.x_component, &drone_force.y_component);
         Sem_post(sem_id);
+
+        // calculating repulsive force from sides
+        // note that in the docs the image of the function is provided and it
+        // shows that only after 20 in the x axis it will start to work. This
+        // explains the constraint.
+        if (xt_1 < 20) {
+            walls.x_component = repulsive_force(xt_1);
+        }else if(xt_1 > SIMULATION_WIDTH - 20){
+            walls.x_component = -repulsive_force(SIMULATION_WIDTH - xt_1);
+        }
+        if (yt_1 < 20) {
+            walls.y_component = repulsive_force(yt_1);
+        }else if(yt_1 > SIMULATION_HEIGHT - 20){
+            walls.y_component = -repulsive_force(SIMULATION_HEIGHT - yt_1);
+        }
+
         drone_current_position.x =
-            (drone_force.x_component - M / (T * T) * (xt_2 - 2 * xt_1) +
+            (walls.x_component + drone_force.x_component - (M / (T * T)) * (xt_2 - 2 * xt_1) +
              (K / T) * xt_1) /
-            (M / (T * T) + K / T);
+            ((M / (T * T)) + K / T);
         drone_current_position.y =
-            (drone_force.y_component - M / (T * T) * (yt_2 - 2 * yt_1) +
+            (walls.y_component + drone_force.y_component - (M / (T * T)) * (yt_2 - 2 * yt_1) +
              (K / T) * yt_1) /
-            (M / (T * T) + K / T);
+            ((M / (T * T)) + K / T);
+
+        // TODO check for boundaries
 
         xt_2 = xt_1;
         xt_1 = drone_current_position.x;
@@ -96,7 +118,7 @@ int main(int argc, char *argv[]) {
         sprintf(shm_ptr + SHM_OFFSET_POSITION, "%.5f|%.5f",
                 drone_current_position.x, drone_current_position.y);
         Sem_post(sem_id);
-        sleep(1);
+        usleep(1000000*T);
     }
 
     shm_unlink(SHMOBJ_PATH);

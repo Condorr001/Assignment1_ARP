@@ -1,12 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "constants.h"
 #include "utils/utils.h"
 
+#define MAX_PROCESSES 5
+#define MAX_VALUES_FOR_PROCESS 30
+#define MAX_PROCESS_NAME_LEN 30
+#define MAX_LEN_PROCESS_ATTR 50
+
 struct kv {
-    char process[30];
-    char keys[30][50];
-    float values[30];
+    char process[MAX_PROCESS_NAME_LEN];
+    char keys[MAX_VALUES_FOR_PROCESS][MAX_LEN_PROCESS_ATTR];
+    float values[MAX_VALUES_FOR_PROCESS];
 };
 
 int read_parameter_file(struct kv *params) {
@@ -28,7 +34,7 @@ int read_parameter_file(struct kv *params) {
     char *saveptr;
     int process_index = 0;
 
-    char to_parse[100];
+    char to_parse[MAX_STRING_LEN];
     while (1) {
         read = getline(&line, &len, f);
         // remove the newline
@@ -64,7 +70,7 @@ int read_parameter_file(struct kv *params) {
 }
 
 float get_param(char *process, char *param) {
-    struct kv read_values[5];
+    struct kv read_values[MAX_PROCESSES];
     int processes = read_parameter_file(read_values);
     for (int i = 0; i < processes; i++) {
         if (!strcmp(read_values[i].process, process)) {

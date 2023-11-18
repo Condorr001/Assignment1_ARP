@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
             1 + drone1_pos.y * (getmaxy(main_window) - 3) / SIMULATION_HEIGHT;
         mvwprintw(main_window, y, x, "+");
         wrefresh(main_window);
-        sleep(1);
+        usleep(3000);
     }
     shm_unlink(SHMOBJ_PATH);
     Sem_close(sem_id);

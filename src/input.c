@@ -146,7 +146,7 @@ float slow_down(float force_value, float step) {
 }
 
 void update_force(struct force *to_update, int input, float step, void *shm_ptr,
-                  sem_t *sem_id) {
+                  sem_t *sem_id, float max_force) {
     Sem_wait(sem_id);
     sscanf(shm_ptr+SHM_OFFSET_FORCE_COMPONENTS, "%f|%f", &to_update->x_component, &to_update->y_component);
     Sem_post(sem_id);
@@ -195,6 +195,15 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
         to_update->y_component = slow_down(to_update->y_component, step);
         break;
     }
+
+    if(to_update->x_component > max_force)
+        to_update->x_component = max_force;
+    if(to_update->y_component > max_force)
+        to_update->y_component = max_force;
+    if(to_update->x_component < -max_force)
+        to_update->x_component = -max_force;
+    if(to_update->y_component < -max_force)
+        to_update->y_component = -max_force;
 }
 
 int main(int argc, char *argv[]) {
@@ -211,6 +220,8 @@ int main(int argc, char *argv[]) {
         perror("SIGUSR1: sigaction()");
         exit(1);
     }
+    
+    float max_force = get_param("drone", "max_force");
 
     // initializing data structs;
     // reading from paramter file
@@ -269,10 +280,10 @@ int main(int argc, char *argv[]) {
         refresh();
         // sleep(1);
         //  waits half second on getch and if nothing is received goes on
-        timeout(500);
+        timeout(100);
         input = getch();
 
-        update_force(&drone_current_force, input, force_step, shm_ptr, sem_id);
+        update_force(&drone_current_force, input, force_step, shm_ptr, sem_id, max_force);
         Sem_wait(sem_id);
         sprintf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                 drone_current_force.x_component,

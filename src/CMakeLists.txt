@@ -12,7 +12,7 @@ add_executable(input input.c)
 
 target_link_libraries(master wrapFunc constants)
 target_link_libraries(server wrapFunc constants)
-target_link_libraries(drone wrapFunc constants)
+target_link_libraries(drone wrapFunc constants utils)
 target_link_libraries(map wrapFunc constants ${CURSES_LIBRARIES})
 target_link_libraries(WD wrapFunc constants)
 target_link_libraries(input wrapFunc constants datastructs utils ${CURSES_LIBRARIES})
