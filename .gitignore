@@ -43,17 +43,21 @@
 include/divisible/*
 out/
 .cache/
-build
-!build/conf/drone_parameters.conf
 
 
 ## Local 
 
 .idea/*.xml
 
-build/**/*
+build/*
+!build/conf/
+!build/conf/drone_parameters.conf
 
 include/*
 lib/*
 bin/*
 test/test_runner
+
+
+
+# Files to add
