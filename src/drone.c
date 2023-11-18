@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
     yt_1 = yt_2 = 10;
     drone_current_position.x = 10;
     drone_current_position.y = 10;
-    drone_force.x_component = 100;
-    drone_force.y_component = 100;
+    drone_force.x_component = 0;
+    drone_force.y_component = 0;
 
     // signal setup
     struct sigaction sa;
@@ -71,6 +71,11 @@ int main(int argc, char *argv[]) {
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
     while (1) {
+        // get drone force
+        Sem_wait(sem_id);
+        sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+               &drone_force.x_component, &drone_force.y_component);
+        Sem_post(sem_id);
         drone_current_position.x =
             (drone_force.x_component - M / (T * T) * (xt_2 - 2 * xt_1) +
              (K / T) * xt_1) /

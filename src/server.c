@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
         // movement etc.) My idea is to have a shared string where the drone
         // writes its state, so that the server can read it and write it in the
         // logfile So something like:
-        char status[MAX_STRING_LEN];
+        char status[MAX_SHM_SIZE];
         int shared_seg_size = MAX_SHM_SIZE;
 
         // create shared memory object
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
         // map pointer
         void *shm_ptr = Mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE,
                              MAP_SHARED, shm, 0);
+        memset(shm_ptr, 0, MAX_SHM_SIZE);
 
         // post semaphore
         sem_post(sem_id);
@@ -74,6 +75,8 @@ int main(int argc, char *argv[]) {
         while (1) {
             Sem_wait(sem_id);
             memcpy(status, shm_ptr, shared_seg_size);
+            printf("%s\t",status);
+            printf("%s\n", status+SHM_OFFSET_FORCE_COMPONENTS);
             // write in the logfile
             Sem_post(sem_id);
 

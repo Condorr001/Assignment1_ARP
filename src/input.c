@@ -1,5 +1,6 @@
-#include "dataStructs.h"
 #include "constants.h"
+#include "dataStructs.h"
+#include "utils/utils.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <curses.h>
 #include <fcntl.h>
@@ -119,6 +120,83 @@ void end_format_input(int input, WINDOW *tl_win, WINDOW *tc_win, WINDOW *tr_win,
     }
 }
 
+float diag(float side) {
+    // beeing the sqrt a slow operation and supposing that
+    // this system would be required to be the fastest possible
+    // a static value for sqrt of 2 is used instead of the computation
+    float sqrt2_half = 0.7071;
+    return side * sqrt2_half;
+}
+
+float slow_down(float force_value, float step) {
+    // if the force value is positive then we need to subtract
+    // the step from it. If now the value goes negative, then
+    // it is set to 0 because this is a breaking function.
+    // The same goes for the negative value
+    if (force_value > 0) {
+        force_value -= step;
+        if (force_value < 0)
+            force_value = 0;
+    } else if (force_value < 0) {
+        force_value += step;
+        if (force_value > 0)
+            force_value = 0;
+    }
+    return force_value;
+}
+
+void update_force(struct force *to_update, int input, float step, void *shm_ptr,
+                  sem_t *sem_id) {
+    Sem_wait(sem_id);
+    sscanf(shm_ptr+SHM_OFFSET_FORCE_COMPONENTS, "%f|%f", &to_update->x_component, &to_update->y_component);
+    Sem_post(sem_id);
+    // Note that the axis are positioned in this way
+    //                     X
+    //           +--------->
+    //           |
+    //           |
+    //         Y |
+    //           V
+    switch (input) {
+    case 'q':
+        to_update->x_component -= diag(step);
+        to_update->y_component -= diag(step);
+        break;
+    case 'w':
+        to_update->y_component -= step;
+        break;
+    case 'e':
+        to_update->x_component += diag(step);
+        to_update->y_component -= diag(step);
+        break;
+    case 'a':
+        to_update->x_component -= step;
+        break;
+    case 's':
+        to_update->x_component = slow_down(to_update->x_component, step);
+        to_update->y_component = slow_down(to_update->y_component, step);
+        break;
+    case 'd':
+        to_update->x_component += step;
+        break;
+    case 'z':
+        to_update->x_component -= diag(step);
+        to_update->y_component += diag(step);
+        break;
+    case 'x':
+        to_update->y_component += step;
+        break;
+    case 'c':
+        to_update->x_component += diag(step);
+        to_update->y_component += diag(step);
+        break;
+    case ' ':
+        to_update->x_component = slow_down(to_update->x_component, step);
+        to_update->y_component = slow_down(to_update->y_component, step);
+        break;
+    }
+}
+
 int main(int argc, char *argv[]) {
 
     // signal setup
@@ -135,9 +213,12 @@ int main(int argc, char *argv[]) {
     }
 
     // initializing data structs;
-    struct force drone_current_force;
+    // reading from paramter file
+    // TODO needs to be repeated with a certain rate
+    struct force drone_current_force = {0, 0};
+    float force_step = get_param("drone", "force_step");
     struct pos drone_current_pos;
-    
+
     /// initializing share memory and semaphores
 
     // initialize semaphor
@@ -180,7 +261,8 @@ int main(int argc, char *argv[]) {
     while (1) {
         // updating values
         Sem_wait(sem_id);
-        sscanf(shm_ptr, "%f|%f", &drone_current_pos.x, &drone_current_pos.y);
+        sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
+               &drone_current_pos.y);
         Sem_post(sem_id);
 
         /// Displaying stuff
@@ -189,6 +271,13 @@ int main(int argc, char *argv[]) {
         //  waits half second on getch and if nothing is received goes on
         timeout(500);
         input = getch();
+
+        update_force(&drone_current_force, input, force_step, shm_ptr, sem_id);
+        Sem_wait(sem_id);
+        sprintf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+                drone_current_force.x_component,
+                drone_current_force.y_component);
+        Sem_post(sem_id);
 
         destroy_input_display(tl_win);
         destroy_input_display(left_split);
@@ -259,13 +348,17 @@ int main(int argc, char *argv[]) {
         mvwprintw(right_split, LINES / 10, COLS / 10, "Score: 0");
 
         mvwprintw(right_split, LINES / 10 + 2, COLS / 10, "position {");
-        mvwprintw(right_split, LINES / 10 + 3, COLS / 10, "\tx: %f", drone_current_pos.x);
-        mvwprintw(right_split, LINES / 10 + 4, COLS / 10, "\ty: %f", drone_current_pos.y);
+        mvwprintw(right_split, LINES / 10 + 3, COLS / 10, "\tx: %f",
+                  drone_current_pos.x);
+        mvwprintw(right_split, LINES / 10 + 4, COLS / 10, "\ty: %f",
+                  drone_current_pos.y);
         mvwprintw(right_split, LINES / 10 + 5, COLS / 10, "}");
 
         mvwprintw(right_split, LINES / 10 + 7, COLS / 10, "force {");
-        mvwprintw(right_split, LINES / 10 + 8, COLS / 10, "\tx: ");
-        mvwprintw(right_split, LINES / 10 + 9, COLS / 10, "\ty: ");
+        mvwprintw(right_split, LINES / 10 + 8, COLS / 10, "\tx: %f",
+                  drone_current_force.x_component);
+        mvwprintw(right_split, LINES / 10 + 9, COLS / 10, "\ty: %f",
+                  drone_current_force.y_component);
         mvwprintw(right_split, LINES / 10 + 10, COLS / 10, "}");
 
         wrefresh(left_split);
