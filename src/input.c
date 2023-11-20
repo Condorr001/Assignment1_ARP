@@ -48,6 +48,8 @@ void begin_format_input(int input, WINDOW *tl_win, WINDOW *tc_win,
                         WINDOW *cr_win, WINDOW *bl_win, WINDOW *bc_win,
                         WINDOW *br_win) {
 
+    // In this function the color of the arrows is enabled if the press of
+    // the corresponding key in the keyboard is detected
     switch (input) {
     case 'q':
         wattron(tl_win, COLOR_PAIR(1));
@@ -86,6 +88,8 @@ void end_format_input(int input, WINDOW *tl_win, WINDOW *tc_win, WINDOW *tr_win,
                       WINDOW *cl_win, WINDOW *cc_win, WINDOW *cr_win,
                       WINDOW *bl_win, WINDOW *bc_win, WINDOW *br_win) {
 
+    // This function is the reciprocal of the one above infact it ripristinates
+    // the color of the previously pressed key
     switch (input) {
     case 'q':
         wattroff(tl_win, COLOR_PAIR(1));
@@ -121,17 +125,20 @@ void end_format_input(int input, WINDOW *tl_win, WINDOW *tc_win, WINDOW *tr_win,
 }
 
 float diag(float side) {
-    // beeing the sqrt a slow operation and supposing that
+    // Beeing the sqrt a slow operation and supposing that
     // this system would be required to be the fastest possible
-    // a static value for sqrt of 2 is used instead of the computation
+    // a static value for the half of the sqrt of 2 is used instead of the
+    // computation of sqrt
     float sqrt2_half = 0.7071;
+    // The dimension of the diagonal of the square is returned
     return side * sqrt2_half;
 }
 
 float slow_down(float force_value, float step) {
-    // if the force value is positive then we need to subtract
-    // the step from it. If now the value goes negative, then
-    // it is set to 0 because this is a breaking function.
+    // If the force value is positive then we need to subtract
+    // the step from it. If after the subtraction the value is negative, then
+    // it is set to 0 because this is a breaking function and this means
+    // that the force is no longer present.
     // The same goes for the negative value
     if (force_value > 0) {
         force_value -= step;
@@ -147,8 +154,10 @@ float slow_down(float force_value, float step) {
 
 void update_force(struct force *to_update, int input, float step, void *shm_ptr,
                   sem_t *sem_id, float max_force) {
+    // First we need to read the previous value of the force
     Sem_wait(sem_id);
-    sscanf(shm_ptr+SHM_OFFSET_FORCE_COMPONENTS, "%f|%f", &to_update->x_component, &to_update->y_component);
+    sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+           &to_update->x_component, &to_update->y_component);
     Sem_post(sem_id);
     // Note that the axis are positioned in this way
     //                     X
@@ -157,6 +166,8 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
     //           |
     //         Y |
     //           V
+    
+    // Depending on the pressed key the force is updated accordingly
     switch (input) {
     case 'q':
         to_update->x_component -= diag(step);
@@ -196,13 +207,15 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
         break;
     }
 
-    if(to_update->x_component > max_force)
+    // If the force goes too big than is set as the max value that has 
+    // been read from the parameters file
+    if (to_update->x_component > max_force)
         to_update->x_component = max_force;
-    if(to_update->y_component > max_force)
+    if (to_update->y_component > max_force)
         to_update->y_component = max_force;
-    if(to_update->x_component < -max_force)
+    if (to_update->x_component < -max_force)
         to_update->x_component = -max_force;
-    if(to_update->y_component < -max_force)
+    if (to_update->y_component < -max_force)
         to_update->y_component = -max_force;
 }
 
@@ -220,18 +233,23 @@ int main(int argc, char *argv[]) {
         perror("SIGUSR1: sigaction()");
         exit(1);
     }
-    
-    float max_force = get_param("drone", "max_force");
 
-    // initializing data structs;
-    // reading from paramter file
-    // TODO needs to be repeated with a certain rate
+    // The max value that the force applied to the drone 
+    // for each axis is read.
+    float max_force = get_param("input", "max_force");
+
+    // Initializing data structs
+    // The current force as the current velocity at the
+    // beginning of the simulation are 0
     struct force drone_current_force = {0, 0};
-    float force_step = get_param("drone", "force_step");
+    struct velocity drone_current_velocity = {0, 0};
+
+    // The force_step, meaning how much force should be added
+    // with each button press is read from the parameters file.
+    float force_step = get_param("input", "force_step");
     struct pos drone_current_pos;
 
     /// initializing share memory and semaphores
-
     // initialize semaphor
     sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
     // initialized to 0 until shared memory is instantiated
@@ -247,14 +265,28 @@ int main(int argc, char *argv[]) {
     void *shm_ptr =
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
+    // Initializing ncurses
     initscr();
+    // Disable line buffering
     cbreak();
+    // Disable echo of pressed characters in order to not have 
+    // the keys pressed to make the drone move appear on the screen
     noecho();
+    // Hide the cursor in order to net see the carret while it's Displaying
+    // the interface
     curs_set(0);
+    // Enable the colors for ncurses
     start_color();
+    // Use the default terminal colors. This is usefull while displaying the 
+    // current background color and leave it as the same as the one of the 
+    // current terminal
     use_default_colors();
+    // The use of use_default_colors comes into play here where the color of the
+    // background is set to -1 meaning that it becomes the current terminal
+    // background color
     init_pair(1, COLOR_GREEN, -1);
 
+    // The windows of the matrix visible in the left split are now initialized
     WINDOW *left_split = input_display_setup(LINES, COLS / 2 - 1, 0, 0);
     WINDOW *right_split = input_display_setup(LINES, COLS / 2 - 1, COLS / 2, 0);
     WINDOW *tl_win = input_display_setup(5, 7, LINES / 3, COLS / 6);
@@ -267,36 +299,69 @@ int main(int argc, char *argv[]) {
     WINDOW *bc_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 6);
     WINDOW *br_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 12);
 
+    // The variable in which to store the input pressed by the user is 
+    // initialized here
     char input;
 
+    // The value of the rate reductor for the read from the paraeters file is 
+    // first set here. This is a counter that is decreased for each cycle in
+    // the main while loop. It is a way to reduce the number of reads from the
+    // parameters file
+    int reading_rate_reductor = get_param("input", "reading_rate_reductor");
+
     while (1) {
-        // updating values
+        // updating values to show in the interface. First the position 
+        // is updated
         Sem_wait(sem_id);
         sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
                &drone_current_pos.y);
         Sem_post(sem_id);
 
-        /// Displaying stuff
-        refresh();
-        // sleep(1);
-        //  waits half second on getch and if nothing is received goes on
+        // Now also the velocity gets updated
+        Sem_wait(sem_id);
+        sscanf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
+               &drone_current_velocity.x_component,
+               &drone_current_velocity.y_component);
+        Sem_post(sem_id);
+
+        // updating constants at runtime when the reading_rate_reductor goes to 0
+        if (!reading_rate_reductor--) {
+            reading_rate_reductor = get_param("input", "reading_rate_reductor");
+            force_step = get_param("input", "force_step");
+            max_force = get_param("input", "max_force");
+        }
+
+        // Timeout sets the time in nanoseconds that getch should wait if no input 
+        // is received. This is the equivalent of having:
+        // usleep(100000)
+        // non_blocking_getch()
         timeout(100);
         input = getch();
 
-        update_force(&drone_current_force, input, force_step, shm_ptr, sem_id, max_force);
+        // Calculate the currently acting force on the drone by sending the 
+        // currently pressed key
+        update_force(&drone_current_force, input, force_step, shm_ptr, sem_id,
+                     max_force);
+
+        // Write to the shared memory the current force value
         Sem_wait(sem_id);
         sprintf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                 drone_current_force.x_component,
                 drone_current_force.y_component);
         Sem_post(sem_id);
 
+        // Destroy all the windows in order to create the animation and guarantee
+        // that the windows will be refreshed in case of the resizing of the terminal
         destroy_input_display(tl_win);
         destroy_input_display(left_split);
         destroy_input_display(right_split);
 
+        // Setting the initial values for the splits
         left_split = input_display_setup(LINES, COLS / 2 - 1, 0, 0);
         right_split = input_display_setup(LINES, COLS / 2 - 1, 0, COLS / 2);
 
+        // Setting the initial values for the cells of the matrix containing
+        // the arrows
         tl_win = input_display_setup(5, 7, LINES / 3, COLS / 6);
         tc_win = input_display_setup(5, 7, LINES / 3, COLS / 6 + 6);
         tr_win = input_display_setup(5, 7, LINES / 3, COLS / 6 + 12);
@@ -307,9 +372,11 @@ int main(int argc, char *argv[]) {
         bc_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 6);
         br_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 12);
 
+        // Setting the "titles" of the splits
         mvwprintw(left_split, 0, 1, "INPUT DISPLAY");
         mvwprintw(right_split, 0, 1, "DYNAMICS DISPLAY");
 
+        // Begin the coloring of the pressed key if any key is pressed
         begin_format_input(input, tl_win, tc_win, tr_win, cl_win, cc_win,
                            cr_win, bl_win, bc_win, br_win);
 
@@ -339,9 +406,11 @@ int main(int argc, char *argv[]) {
 
         mvwprintw(cc_win, 2, 3, "X");
 
+        // Disable the color for the next iteration
         end_format_input(input, tl_win, tc_win, tr_win, cl_win, cc_win, cr_win,
                          bl_win, bc_win, br_win);
 
+        // Setting the symbols for the corners of the cells
         mvwprintw(tc_win, 0, 0, ".");
         mvwprintw(tr_win, 0, 0, ".");
         mvwprintw(cl_win, 0, 0, "+");
@@ -355,9 +424,9 @@ int main(int argc, char *argv[]) {
         mvwprintw(bc_win, 4, 0, "'");
         mvwprintw(br_win, 4, 0, "'");
 
-        /// right split
-        mvwprintw(right_split, LINES / 10, COLS / 10, "Score: 0");
+        /// Right split
 
+        // Displaying the current position fo the drone with nice formatting
         mvwprintw(right_split, LINES / 10 + 2, COLS / 10, "position {");
         mvwprintw(right_split, LINES / 10 + 3, COLS / 10, "\tx: %f",
                   drone_current_pos.x);
@@ -365,13 +434,25 @@ int main(int argc, char *argv[]) {
                   drone_current_pos.y);
         mvwprintw(right_split, LINES / 10 + 5, COLS / 10, "}");
 
-        mvwprintw(right_split, LINES / 10 + 7, COLS / 10, "force {");
+        // Displaying the current velocity of the drone with nice formatting
+        mvwprintw(right_split, LINES / 10 + 7, COLS / 10, "velocity {");
         mvwprintw(right_split, LINES / 10 + 8, COLS / 10, "\tx: %f",
-                  drone_current_force.x_component);
+                  drone_current_velocity.x_component);
         mvwprintw(right_split, LINES / 10 + 9, COLS / 10, "\ty: %f",
-                  drone_current_force.y_component);
+                  drone_current_velocity.y_component);
         mvwprintw(right_split, LINES / 10 + 10, COLS / 10, "}");
 
+        // Displaying the current force beeing applied on the drone only by the
+        // user. So no border effect are taken into consideration while 
+        // displaying these values.
+        mvwprintw(right_split, LINES / 10 + 12, COLS / 10, "force {");
+        mvwprintw(right_split, LINES / 10 + 13, COLS / 10, "\tx: %f",
+                  drone_current_force.x_component);
+        mvwprintw(right_split, LINES / 10 + 14, COLS / 10, "\ty: %f",
+                  drone_current_force.y_component);
+        mvwprintw(right_split, LINES / 10 + 15, COLS / 10, "}");
+
+        // Refreshing all the windows
         wrefresh(left_split);
         wrefresh(right_split);
         wrefresh(tl_win);
@@ -385,8 +466,10 @@ int main(int argc, char *argv[]) {
         wrefresh(br_win);
     }
 
+    // Closing ncurses
     endwin();
 
+    // Cleaning up
     shm_unlink(SHMOBJ_PATH);
     Sem_close(sem_id);
     Sem_unlink(SEM_PATH);
