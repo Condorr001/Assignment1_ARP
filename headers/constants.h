@@ -7,6 +7,11 @@
 #define SHMOBJ_PATH "/shm_server"
 #define SEM_PATH "/sem_server"
 
+#define MAX_SHM_SIZE 1024
+#define SHM_OFFSET_POSITION 0
+#define SHM_OFFSET_FORCE_COMPONENTS 100
+#define SHM_OFFSET_VELOCITY_COMPONENTS 200
+
 #define SEED_MULTIPLIER 120
 #define MAX_NUMBER 50
 #define MAX_STRING_LEN 100
