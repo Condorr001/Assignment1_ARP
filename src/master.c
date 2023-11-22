@@ -67,13 +67,13 @@ int main(int argc, char *argv[]) {
             }
 
             // spawn the last program, so the WD, which needs all the processes
-            // PIDs
+            // PIDs (no input as it's executed with konsole)
             if (i == num_children - 1) {
-                for (int i = 0; i < num_children - 1; i++)
+                for (int i = 0; i < num_children - 2; i++)
                     sprintf(child_pids_str[i], "%d", child[i]);
 
                 char *arg_list[] = {programs[i], child_pids_str[0],
-                                    child_pids_str[1], child_pids_str[2], NULL};
+                                    child_pids_str[1], NULL};
                 spawn(arg_list);
             }
         } else {

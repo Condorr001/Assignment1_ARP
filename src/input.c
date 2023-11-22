@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/ipc.h>
 
 // WD pid
 pid_t WD_pid;
@@ -220,7 +221,6 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
 }
 
 int main(int argc, char *argv[]) {
-
     // signal setup
     struct sigaction sa;
     // memset(&sa, 0, sizeof(sa));
@@ -233,6 +233,23 @@ int main(int argc, char *argv[]) {
         perror("SIGUSR1: sigaction()");
         exit(1);
     }
+
+    //path of the pid file
+    char filename2_string[80];
+    sprintf(filename2_string, "../file/pid.txt");
+
+    //get current pid and save it in a string
+    int input_pid = getpid();
+    char input_pid_str[10];
+    sprintf(input_pid_str, "%d", input_pid);
+
+    //write input pid in the file
+    FILE *F1;
+    F1 = fopen(filename2_string, "w");
+    fprintf(F1, "%s\n", input_pid_str);
+    fclose(F1);
+
+    //START OF NCURSES---------------------------------------
 
     // The max value that the force applied to the drone 
     // for each axis is read.
