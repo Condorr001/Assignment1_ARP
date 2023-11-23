@@ -2,7 +2,9 @@
 #define WRAPFUNC
 #include <semaphore.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <sys/select.h>
+#include <sys/file.h>
 
 int Wait(int *wstatus);
 int Waitpid(pid_t pid, int *wstatus, int options);
@@ -24,5 +26,6 @@ int Sem_wait(sem_t *sem);
 int Sem_post(sem_t *sem);
 int Sem_close(sem_t *sem);
 int Sem_unlink(const char *name);
-
+FILE* Fopen(const char* pathname, const char* mode);
+int Flock(int fd, int operation);
 #endif // !WRAPFUNC

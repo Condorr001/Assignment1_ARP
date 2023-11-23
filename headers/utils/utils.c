@@ -1,8 +1,10 @@
 #include "utils/utils.h"
 #include "constants.h"
+#include "wrapFuncs/wrapFunc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 
 #define MAX_PROCESSES 5
 #define MAX_VALUES_FOR_PROCESS 30
@@ -44,16 +46,19 @@ int read_parameter_file(struct kv *params) {
     int process_index = 0;
 
     // Try to open the configuration file. If it fails outputs an error message
-    f = fopen("conf/drone_parameters.conf", "r");
-    if (f == NULL) {
-        printf("Erorr during fopen inside utils read_parameter_file");
-        getchar();
-        exit(EXIT_FAILURE);
-    }
+    f = Fopen("conf/drone_parameters.conf", "r");
+    // Lock the file in case there will be any concurrent access, but considering
+    // that all the accesses will be in reading it won't be a big concern
+    Flock(fileno(f), LOCK_SH);
 
     while (1) {
         // Read a line from the file
         read = getline(&line, &len, f);
+        // Please note that this function has not a wrapper function because
+        // -1 is returned both in case of an error and EOF. The
+        // EOF condition is used later in the function so no wrapper function
+        // could be craeted
+        
         // If an actual line is read than remove the last character in the
         // string by assigning to it the null terminator. The last character
         // in the string at least in a linux environment will always be \n
@@ -105,6 +110,8 @@ int read_parameter_file(struct kv *params) {
         }
     }
     
+    // Remove the lock from the file f
+    Flock(fileno(f), LOCK_UN);
     // Close the file
     fclose(f);
     // If line has still some memory allocated by getline free it

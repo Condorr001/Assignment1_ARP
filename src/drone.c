@@ -93,9 +93,10 @@ int main(int argc, char *argv[]) {
     int reading_rate_reductor = get_param("drone", "reading_rate_reductor");
 
     // initialize semaphor
-    sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_position = Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_velocity = Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
     // initialized to 0 until shared memory is instantiated
-    // Sem_init(sem_id, 1, 0);
 
     // create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
@@ -123,10 +124,10 @@ int main(int argc, char *argv[]) {
         }
         // The semaphore is taken in order to read the force components as
         // given by the user in the input process
-        Sem_wait(sem_id);
+        Sem_wait(sem_force);
         sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                &drone_force.x_component, &drone_force.y_component);
-        Sem_post(sem_id);
+        Sem_post(sem_force);
 
         // Calculating repulsive force from sides
         // note that in the docs the image of the function is provided and it
@@ -180,18 +181,18 @@ int main(int argc, char *argv[]) {
         // The calculated position is written in shared memory in order to allow
         // the input process to correctly display it in the ncurses interface.
         // To do that firstly the semaphore needs to be taken
-        Sem_wait(sem_id);
+        Sem_wait(sem_position);
         sprintf(shm_ptr + SHM_OFFSET_POSITION, "%.5f|%.5f",
                 drone_current_position.x, drone_current_position.y);
-        Sem_post(sem_id);
+        Sem_post(sem_position);
         // The calculated velocity is written in the shared memory in order to
         // allow the input process to correctly display it in the curses
         // interface
-        Sem_wait(sem_id);
+        Sem_wait(sem_velocity);
         sprintf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
                 drone_current_velocity.x_component,
                 drone_current_velocity.y_component);
-        Sem_post(sem_id);
+        Sem_post(sem_velocity);
 
         // The process needs to wait T seconds before computing again the
         // position as specified in the paramaters file. Here usleep needs the
@@ -203,8 +204,12 @@ int main(int argc, char *argv[]) {
 
     // Cleaning up
     shm_unlink(SHMOBJ_PATH);
-    Sem_close(sem_id);
-    Sem_unlink(SEM_PATH);
+    Sem_close(sem_position);
+    Sem_close(sem_force);
+    Sem_close(sem_velocity);
+    Sem_unlink(SEM_PATH_FORCE);
+    Sem_unlink(SEM_PATH_POSITION);
+    Sem_unlink(SEM_PATH_VELOCITY);
     munmap(shm_ptr, MAX_SHM_SIZE);
     return 0;
 }

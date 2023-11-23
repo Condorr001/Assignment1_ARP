@@ -5,6 +5,7 @@
 #include <curses.h>
 #include <fcntl.h>
 #include <math.h>
+#include <semaphore.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +53,9 @@ int main(int argc, char *argv[]) {
     struct pos drone1_pos;
 
     // initialize semaphor
-    sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_position = Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_velocity = Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
     // create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
@@ -81,9 +84,9 @@ int main(int argc, char *argv[]) {
     // setting up structures needed for terminal resizing
     while (1) {
         // Updating the drone position by reading from the shared memory
-        Sem_wait(sem_id);
+        Sem_wait(sem_position);
         sscanf(shm_ptr, "%f|%f", &drone1_pos.x, &drone1_pos.y);
-        Sem_post(sem_id);
+        Sem_post(sem_position);
 
         // Deleting the old window that is encapsulating the map in order to
         // create the animation
@@ -121,8 +124,12 @@ int main(int argc, char *argv[]) {
 
     // Clean up
     shm_unlink(SHMOBJ_PATH);
-    Sem_close(sem_id);
-    Sem_unlink(SEM_PATH);
+    Sem_close(sem_force);
+    Sem_close(sem_velocity);
+    Sem_close(sem_position);
+    Sem_unlink(SEM_PATH_POSITION);
+    Sem_unlink(SEM_PATH_FORCE);
+    Sem_unlink(SEM_PATH_VELOCITY);
     munmap(shm_ptr, MAX_SHM_SIZE);
     // Closing ncurses
     endwin();
