@@ -9,8 +9,8 @@
 int Wait(int *wstatus);
 int Waitpid(pid_t pid, int *wstatus, int options);
 int Execvp(const char* file, char** args);
-int Read(int fd, void *buf, size_t nbytes);
-int Write(int fd, void *buf, size_t nbytes);
+void Read(int fd, char* msg_received, int msg_length);
+void Write(int fd, char* str, int str_len);
 int Fork();
 int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
            struct timeval *timeout);

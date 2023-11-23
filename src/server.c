@@ -1,4 +1,6 @@
 #include "constants.h"
+#include "dataStructs.h"
+#include "utils/utils.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
 #include <signal.h>
@@ -34,6 +36,13 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    struct pos drone_current_pos;
+
+    //logfile
+    char filename_string[80];
+    sprintf(filename_string, "../file/log.log");
+    FILE *F0;
+
     int server_map[2];
     Pipe(server_map);
 
@@ -56,18 +65,20 @@ int main(int argc, char *argv[]) {
         Sem_init(sem_position, 1, 1);
         Sem_init(sem_velocity, 1, 1);
 
+        /*
         // here goes what is shared with the drone (where is it, direction of
         // movement etc.) My idea is to have a shared string where the drone
         // writes its state, so that the server can read it and write it in the
         // logfile So something like:
         char status[MAX_SHM_SIZE];
         int shared_seg_size = MAX_SHM_SIZE;
+        */
 
         // create shared memory object
         int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
         // truncate size of shared memory
-        Ftruncate(shm, shared_seg_size);
+        Ftruncate(shm, MAX_SHM_SIZE);
 
         // map pointer
         void *shm_ptr = Mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE,
@@ -77,16 +88,18 @@ int main(int argc, char *argv[]) {
         // every two seconds write in the logfile the state of the drone (it
         // would be better to write only if the status has changed)
         while (1) {
-            Sem_wait(sem_position);
-            Sem_wait(sem_force);
-            Sem_wait(sem_velocity);
+            Sem_wait(sem_id);
+            /*
             memcpy(status, shm_ptr, shared_seg_size);
-            printf("%s\t", status);
-            printf("%s\n", status + SHM_OFFSET_FORCE_COMPONENTS);
+            printf("%s\t",status);
+            printf("%s\n", status+SHM_OFFSET_FORCE_COMPONENTS);
+            */
+            sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x, &drone_current_pos.y);
             // write in the logfile
-            Sem_post(sem_velocity);
-            Sem_post(sem_force);
-            Sem_post(sem_position);
+            F0 = fopen(filename_string, "a");
+            fprintf(F0, "The x-y position of the drone is: %f %f\n", drone_current_pos.x, drone_current_pos.y);
+            fclose(F0);
+            Sem_post(sem_id);
 
             // TODO TEMPORANEO
             // Write(server_map[1],"123.45|234.23", 14);

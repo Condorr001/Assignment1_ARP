@@ -36,10 +36,13 @@ int main(int argc, char *argv[]) {
     // value for waiting for the children to terminate
     int res;
 
+    /*
+    Pipe are not needed here since we use shared memory for the server
     // create the pipe and print the ids in a string
     Pipe(ItoD);
     char ItoD_string[80];
     sprintf(ItoD_string, "%d %d", ItoD[0], ItoD[1]);
+    */
 
     for (int i = 0; i < num_children; i++) {
         child[i] = Fork();
@@ -50,16 +53,16 @@ int main(int argc, char *argv[]) {
                 spawn(arg_list);
             }
 
-            // spawn the drone and the input programs, which need pipe to
-            // communicate
+            // spawn the drone and the input programs
             // TODO maybe
             if (i == 2) {
-                char *tmp[] = {"konsole", "-e", "./input", NULL};
+                char *tmp[] = {"konsole", "-e", programs[i], NULL};
                 Execvp("konsole", tmp);
             }
             // TODO change back -2 to -1
-            if (i > 0 && i < num_children - 2) {
-                char *arg_list[] = {programs[i], ItoD_string, NULL};
+            //spawn the drone
+            if (i > 0 && i < num_children - 1) {
+                char *arg_list[] = {programs[i], NULL};
                 spawn(arg_list);
             }
 
@@ -74,13 +77,13 @@ int main(int argc, char *argv[]) {
                 spawn(arg_list);
             }
         } else {
-            printf("Spawned child with pid %d", child[i]);
+            //printf("Spawned child with pid %d\n", child[i]);
         }
     }
 
     printf("Server pid is %d\n", child[0]);
     printf("Drone pid is %d\n", child[1]);
-    printf("Input pid is %d\n", child[2]);
+    printf("Konsole of Input pid is %d\n", child[2]);
     printf("WD pid is %d\n", child[3]);
     // wait for all children to terminate
     for (int i = 0; i < num_children; i++) {
