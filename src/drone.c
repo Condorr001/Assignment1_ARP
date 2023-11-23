@@ -25,10 +25,12 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     }
 }
 
-float repulsive_force(float distance, float function_scale, float area_of_effect) {
+float repulsive_force(float distance, float function_scale,
+                      float area_of_effect) {
     // this function returns the border effect given the general
     // function given in the docs folder of the project
-    return function_scale * (area_of_effect - distance) / (distance / function_scale);
+    return function_scale * (area_of_effect - distance) /
+           (distance / function_scale);
 }
 
 int main(int argc, char *argv[]) {
@@ -41,7 +43,9 @@ int main(int argc, char *argv[]) {
     // Resetting the mask
     sigemptyset(&sa.sa_mask);
     // Setting flags
-    sa.sa_flags = SA_SIGINFO;
+    // The SA_RESTART flag has been added to restart all those syscalls that can
+    // get interrupted by signals
+    sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
     if (sigaction(SIGUSR1, &sa, NULL) < 0) {
         perror("SIGUSR1: sigaction()");
@@ -93,9 +97,11 @@ int main(int argc, char *argv[]) {
     int reading_rate_reductor = get_param("drone", "reading_rate_reductor");
 
     // initialize semaphor
-    sem_t *sem_position = Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_position =
+        Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    sem_t *sem_velocity = Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_velocity =
+        Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
     // initialized to 0 until shared memory is instantiated
 
     // create shared memory object
@@ -140,13 +146,16 @@ int main(int argc, char *argv[]) {
                 repulsive_force(xt_1, function_scale, area_of_effect);
             // In the following if the right edge is checked
         } else if (xt_1 > SIMULATION_WIDTH - area_of_effect) {
-            walls.x_component = -repulsive_force(SIMULATION_WIDTH - xt_1, function_scale, area_of_effect);
+            walls.x_component = -repulsive_force(
+                SIMULATION_WIDTH - xt_1, function_scale, area_of_effect);
         }
         if (yt_1 < area_of_effect) {
-            walls.y_component = repulsive_force(yt_1, function_scale, area_of_effect);
+            walls.y_component =
+                repulsive_force(yt_1, function_scale, area_of_effect);
             // In the following if the bottom edge is checked
         } else if (yt_1 > SIMULATION_HEIGHT - area_of_effect) {
-            walls.y_component = -repulsive_force(SIMULATION_HEIGHT - yt_1, function_scale, area_of_effect);
+            walls.y_component = -repulsive_force(
+                SIMULATION_HEIGHT - yt_1, function_scale, area_of_effect);
         }
 
         // Here the current position of the drone is calculated using

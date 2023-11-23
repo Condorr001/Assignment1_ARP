@@ -52,7 +52,9 @@ int main(int argc, char *argv[]) {
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_SIGINFO;
+    // SA_RESTART has been used to restart all those syscalls that can get
+    // interrupted by signals
+    sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
     if (sigaction(SIGUSR2, &sa, NULL) < 0) {
         perror("SIGUSR2: sigaction()");
@@ -82,8 +84,8 @@ int main(int argc, char *argv[]) {
     // read from pid file
     FILE *F1;
     F1 = Fopen(filename2_string, "r");
-    char* ret = fgets(input_pid_str, sizeof(input_pid_str), F1);
-    if(ret == NULL){
+    char *ret = fgets(input_pid_str, sizeof(input_pid_str), F1);
+    if (ret == NULL) {
         perror("error on fgets in WD");
     }
     sscanf(input_pid_str, "%d", &p_pids[2]);

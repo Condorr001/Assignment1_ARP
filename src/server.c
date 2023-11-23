@@ -29,7 +29,9 @@ int main(int argc, char *argv[]) {
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_SIGINFO;
+    // SA_RESTART has been used to restart all those syscalls that can get
+    // interrupted by signals
+    sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
     if (sigaction(SIGUSR1, &sa, NULL) < 0) {
         perror("SIGUSR1: sigaction()");
@@ -38,7 +40,7 @@ int main(int argc, char *argv[]) {
 
     struct pos drone_current_pos;
 
-    //logfile
+    // logfile
     char filename_string[80];
     sprintf(filename_string, "../file/log.log");
     FILE *F0;
@@ -96,10 +98,12 @@ int main(int argc, char *argv[]) {
             printf("%s\t",status);
             printf("%s\n", status+SHM_OFFSET_FORCE_COMPONENTS);
             */
-            sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x, &drone_current_pos.y);
+            sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
+                   &drone_current_pos.y);
             // write in the logfile
             F0 = fopen(filename_string, "a");
-            fprintf(F0, "The x-y position of the drone is: %f %f\n", drone_current_pos.x, drone_current_pos.y);
+            fprintf(F0, "The x-y position of the drone is: %f %f\n",
+                    drone_current_pos.x, drone_current_pos.y);
             fclose(F0);
             Sem_post(sem_position);
             Sem_post(sem_velocity);

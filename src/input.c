@@ -228,7 +228,9 @@ int main(int argc, char *argv[]) {
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_SIGINFO;
+    // The restart flag is used to restart all those syscalls that can get
+    // interrupted by signals
+    sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
     if (sigaction(SIGUSR1, &sa, NULL) < 0) {
         perror("SIGUSR1: sigaction()");
