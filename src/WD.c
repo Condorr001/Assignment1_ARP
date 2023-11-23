@@ -12,7 +12,8 @@
 #include "constants.h"
 #include "wrapFuncs/wrapFunc.h"
 
-#define DT 4 // Time period for timeout in seconds
+// Time period for timeout in seconds
+int DT = 1;
 
 //number of processes to monitorate
 int num_processes = NUM_PROCESSES;
@@ -100,6 +101,7 @@ int main(int argc, char *argv[]) {
         if (current_time - start_time >= DT) {
             if(switches) {
                 switches = false;
+                DT = 3;
 
                 //initialize arrived_pids to 0
                 for (int i = 0; i < num_processes; i++)
@@ -114,6 +116,7 @@ int main(int argc, char *argv[]) {
             }
             else {
                 switches = true;
+                DT = 1;
 
                 //if not all processes have sent a signal in response, it means that at least one process is dead
                 if (count != num_processes) {
@@ -146,7 +149,6 @@ int main(int argc, char *argv[]) {
             }
             start_time = current_time;
         }
-        sleep(10);
     }
 
     return 0;
