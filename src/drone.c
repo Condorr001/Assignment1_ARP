@@ -25,10 +25,10 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     }
 }
 
-float repulsive_force(float distance) {
+float repulsive_force(float distance, float function_scale, float area_of_effect) {
     // this function returns the border effect given the general
     // function given in the docs folder of the project
-    return 10 * (20 - distance) / (distance / 10);
+    return function_scale * (area_of_effect - distance) / (distance / function_scale);
 }
 
 int main(int argc, char *argv[]) {
@@ -48,12 +48,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-
     // Initializing structs to store data gotten and given by this process
     // drone_force as every other of these structs has a x and a y component
     // Drone force is the force applied to the drone by the input
     struct force drone_force;
-    // walls is the force acting on the drone due to the close distance to 
+    // walls is the force acting on the drone due to the close distance to
     // the walls
     struct force walls;
     // drone_current_position stores the current position of the drone
@@ -61,12 +60,18 @@ int main(int argc, char *argv[]) {
     // drone_current_velocity stores the curretn velocity of the drone
     struct velocity drone_current_velocity;
 
+    // Read the parameters for the border effect
+    // Function scale determines the slope of the function while
+    // area of effect for how many meters will the border repel the object
+    float function_scale = get_param("drone", "function_scale");
+    float area_of_effect = get_param("drone", "area_of_effect");
+
     // Read a first time from the paramter file to set the constants
     float M = get_param("drone", "mass");
     float T = get_param("drone", "time_step");
     float K = get_param("drone", "viscous_coefficient");
 
-    // Initializing the variables that will store the position at time 
+    // Initializing the variables that will store the position at time
     // t-1 and t-2. So xt_1 means x(t-1) and xt_2 x(t-2). The same goes
     // for y variable
     float xt_1, xt_2;
@@ -83,10 +88,9 @@ int main(int argc, char *argv[]) {
     drone_current_velocity.x_component = 0;
     drone_current_velocity.y_component = 0;
 
-    // Here the number of cycles to wait before reading again from file is 
+    // Here the number of cycles to wait before reading again from file is
     // read from the paramaters file
     int reading_rate_reductor = get_param("drone", "reading_rate_reductor");
-
 
     // initialize semaphor
     sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
@@ -107,41 +111,44 @@ int main(int argc, char *argv[]) {
         // If reading_rate_reductor is equal to 0 is time to read again from the
         // parameters file
         if (!reading_rate_reductor--) {
-            // The first parameter to be read is the reading_rate_reductor itself.
+            // The first parameter to be read is the reading_rate_reductor
+            // itself.
             reading_rate_reductor = get_param("drone", "reading_rate_reductor");
             // Then all the other phisic parameters are read
             M = get_param("drone", "mass");
             T = get_param("drone", "time_step");
             K = get_param("drone", "viscous_coefficient");
+            function_scale = get_param("drone", "function_scale");
+            area_of_effect = get_param("drone", "area_of_effect");
         }
-        // The semaphore is taken in order to read the force components as 
+        // The semaphore is taken in order to read the force components as
         // given by the user in the input process
         Sem_wait(sem_id);
         sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                &drone_force.x_component, &drone_force.y_component);
         Sem_post(sem_id);
 
-
         // Calculating repulsive force from sides
         // note that in the docs the image of the function is provided and it
-        // shows that only after 20 in the x axis it will start to work. This
-        // explains the constraint in the if.
-        // So if xt_1 is less than 20 distance from the any wall in the x axis
-        // it will be affeccted by the force
-        if (xt_1 < 20) {
-            walls.x_component = repulsive_force(xt_1);
+        // shows that only after 'area_of_effect' in the x axis it will start to
+        // work. This explains the constraint in the if. So if xt_1 is less than
+        // 'area_of_effect' distance from the any wall in the x axis it will be
+        // affeccted by the force
+        if (xt_1 < area_of_effect) {
+            walls.x_component =
+                repulsive_force(xt_1, function_scale, area_of_effect);
             // In the following if the right edge is checked
-        } else if (xt_1 > SIMULATION_WIDTH - 20) {
-            walls.x_component = -repulsive_force(SIMULATION_WIDTH - xt_1);
+        } else if (xt_1 > SIMULATION_WIDTH - area_of_effect) {
+            walls.x_component = -repulsive_force(SIMULATION_WIDTH - xt_1, function_scale, area_of_effect);
         }
-        if (yt_1 < 20) {
-            walls.y_component = repulsive_force(yt_1);
+        if (yt_1 < area_of_effect) {
+            walls.y_component = repulsive_force(yt_1, function_scale, area_of_effect);
             // In the following if the bottom edge is checked
-        } else if (yt_1 > SIMULATION_HEIGHT - 20) {
-            walls.y_component = -repulsive_force(SIMULATION_HEIGHT - yt_1);
+        } else if (yt_1 > SIMULATION_HEIGHT - area_of_effect) {
+            walls.y_component = -repulsive_force(SIMULATION_HEIGHT - yt_1, function_scale, area_of_effect);
         }
 
-        // Here the current position of the drone is calculated using 
+        // Here the current position of the drone is calculated using
         // the provided formula. The x and y components are calculated
         // using the same formula
         drone_current_position.x =
@@ -153,7 +160,7 @@ int main(int argc, char *argv[]) {
              (M / (T * T)) * (yt_2 - 2 * yt_1) + (K / T) * yt_1) /
             ((M / (T * T)) + K / T);
 
-        // The current velocity is calculated by dividing the 
+        // The current velocity is calculated by dividing the
         // difference of position by the time step between the calculations
         // both for the x and y axis
         drone_current_velocity.x_component =
@@ -171,24 +178,26 @@ int main(int argc, char *argv[]) {
         yt_1 = drone_current_position.y;
 
         // The calculated position is written in shared memory in order to allow
-        // the input process to correctly display it in the ncurses interface. 
+        // the input process to correctly display it in the ncurses interface.
         // To do that firstly the semaphore needs to be taken
         Sem_wait(sem_id);
         sprintf(shm_ptr + SHM_OFFSET_POSITION, "%.5f|%.5f",
                 drone_current_position.x, drone_current_position.y);
         Sem_post(sem_id);
-        // The calculated velocity is written in the shared memory in order to allow
-        // the input process to correctly display it in the curses interface
+        // The calculated velocity is written in the shared memory in order to
+        // allow the input process to correctly display it in the curses
+        // interface
         Sem_wait(sem_id);
         sprintf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
                 drone_current_velocity.x_component,
                 drone_current_velocity.y_component);
         Sem_post(sem_id);
 
-        // The process needs to wait T seconds before computing again the position
-        // as specified in the paramaters file. Here usleep needs the amount to sleep
-        // for in microsecons. So 1 second in microseconds is given and then multiplied
-        // by T to get the correct amount of microseconds to sleep for.
+        // The process needs to wait T seconds before computing again the
+        // position as specified in the paramaters file. Here usleep needs the
+        // amount to sleep for in microsecons. So 1 second in microseconds is
+        // given and then multiplied by T to get the correct amount of
+        // microseconds to sleep for.
         usleep(1000000 * T);
     }
 
