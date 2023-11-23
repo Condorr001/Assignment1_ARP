@@ -1,20 +1,17 @@
 #include "constants.h"
+#include "dataStructs.h"
 #include "ncurses.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <curses.h>
+#include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/select.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/select.h>
 #include <unistd.h>
-
-#define SELECT_SLEEP_TIME 100
-
-struct drone_pos{
-    float x;
-    float y;
-}drone1_pos = {0,0};
 
 WINDOW *create_map_win(int height, int width, int starty, int startx) {
     WINDOW *local_win;
@@ -23,7 +20,7 @@ WINDOW *create_map_win(int height, int width, int starty, int startx) {
     box(local_win, 0, 0); /* 0, 0 gives default characters
                            * for the vertical and horizontal
                            * lines			*/
-    //wrefresh(local_win);  /* Show that box 		*/
+    // wrefresh(local_win);  /* Show that box 		*/
 
     return local_win;
 }
@@ -50,79 +47,84 @@ void destroy_map_win(WINDOW *local_win) {
 }
 
 int main(int argc, char *argv[]) {
-    // avoid error while resizing window during select sleep
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGWINCH);
-    sigprocmask(SIG_BLOCK, &mask, NULL);
+    // Setting up the struct in which to store the position of the drone
+    // in order to calculate the current position on the screen of the drone
+    struct pos drone1_pos;
 
-    // setting up the pipe to receive data from the server
-    int pipe;
-    sscanf(argv[1], "%d", &pipe);
+    // initialize semaphor
+    sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
-    // setting up the buffer in which to copy the data received from the server
-    char received_data[100];
+    // create shared memory object
+    int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
-    // setting up the sets needed for the select
-    fd_set reader;
-    fd_set master;
+    // truncate size of shared memory
+    Ftruncate(shm, MAX_SHM_SIZE);
 
-    // setting up the timer structure that will be used by select
-    struct timeval timer;
-    timer.tv_sec = 0;
-    timer.tv_usec = SELECT_SLEEP_TIME;
-
-    // clearing the sets
-    FD_ZERO(&reader);
-    FD_ZERO(&master);
-
-    // adding the receiving end of the pipe to the monitored file descriptors
-    FD_SET(pipe, &master);
-    // reading and ncurses loop
+    // map pointer
+    void *shm_ptr =
+        Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
     // setting up ncurses
     initscr();
     // disabling line buffering
     cbreak();
-    // hide the cursor
+    // hide the cursor in order to not see the white carret on the screen
     curs_set(0);
     // TODO setting up the menu
     mvprintw(0, 0, "menu");
+    // Display the menu text
     refresh();
     // displaying the first intance of the window
-    WINDOW *main_window =
+    WINDOW *map_window =
         create_map_win(getmaxy(stdscr) - 2, getmaxx(stdscr), 1, 0);
 
     // setting up structures needed for terminal resizing
-    struct winsize w;
     while (1) {
-        // https://man7.org/linux/man-pages/man3/resizeterm.3x.html
-        // handling terminal resizing without the use of SIGWINCH
-        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-        resizeterm(w.ws_row,w.ws_col);
-        reader = master;
-        // note that select with a timeaut has been used in order to guarantee
-        // that ncurses will keep working even if no messages are beeing sent to
-        // the map handler
-        Select(pipe + 1, &reader, NULL, NULL, &timer);
-        // resetting the timer after select execution
-        timer.tv_usec = SELECT_SLEEP_TIME;
-        if (FD_ISSET(pipe, &reader)) {
-            char received[MAX_STRING_LEN];
-            Read(pipe, received, MAX_STRING_LEN);
+        // Updating the drone position by reading from the shared memory
+        Sem_wait(sem_id);
+        sscanf(shm_ptr, "%f|%f", &drone1_pos.x, &drone1_pos.y);
+        Sem_post(sem_id);
 
-            sscanf(received, "%f|%f", &drone1_pos.x, &drone1_pos.y);
-        }
+        // Deleting the old window that is encapsulating the map in order to
+        // create the animation
+        delwin(map_window);
+        // Redrawing the window. This is usefull if the screen is resized
+        map_window = create_map_win(LINES - 1, COLS, 1, 0);
+        // In order to correctly handle the drone position calculation all
+        // the simulations are done in a 500x500 square. Then the position of
+        // the drone is converted to the dimension of the window by doing a
+        // proportion. The computation done in the following line could by
+        // expressed as the following in the x axis:
+        // drone_position_in_terminal = simulated_drone_pos_x * term_width/500
+        // Now for the terminal width and height it needs to be taken into
+        // consideration the border of the window itself. Considering for
+        // example the x axis we have a border on the left and one on the right
+        // so we need to subtract 2 from the width of the main_window. Now the
+        // extra -1 is due to the fact that the index starts from 0 and not
+        // from 1. With this we mean that if we have an array of dimension 3.
+        // The highest index of an element in the arry will be 2, not 3. This
+        // explains why -3 instead of -2.
+        int x = round(1 + drone1_pos.x * (getmaxx(map_window) - 3) /
+                              SIMULATION_WIDTH);
+        int y = round(1 + drone1_pos.y * (getmaxy(map_window) - 3) /
+                              SIMULATION_HEIGHT);
 
-        // handling ncurses update
-        delwin(main_window);
-        main_window =
-            create_map_win(LINES - 1, COLS, 1, 0);
-        int x = 1 + drone1_pos.x * (getmaxx(main_window)-3) / SIMULATION_WIDTH;
-        int y = 1 + drone1_pos.y * (getmaxy(main_window)-3) / SIMULATION_HEIGHT;
-        mvwprintw(main_window, y,x,"+");
-        wrefresh(main_window);
+        // The drone is now displayed on the screen
+        mvwprintw(map_window, y, x, "+");
+
+        // The map_window is refreshed
+        wrefresh(map_window);
+        // The process sleeps for the time needed to have an almost 30fps
+        // animation
+        usleep(3000);
     }
+
+    // Clean up
+    shm_unlink(SHMOBJ_PATH);
+    Sem_close(sem_id);
+    Sem_unlink(SEM_PATH);
+    munmap(shm_ptr, MAX_SHM_SIZE);
+    // Closing ncurses
     endwin();
     return EXIT_SUCCESS;
 }

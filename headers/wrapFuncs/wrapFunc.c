@@ -41,17 +41,6 @@ int Execvp(const char* file, char** args){
     return ret;
 }
 
-int Read(int fd, void *buf, size_t nbytes) {
-    int ret = read(fd, buf, nbytes);
-    if (ret < 0) {
-        perror("Error on reading from file descriptor");
-        fflush(stdout);
-        getchar();
-        exit(EXIT_FAILURE);
-    }
-    return ret;
-}
-
 int Fork() {
     int ret = fork();
     if (ret < 0) {
@@ -62,15 +51,25 @@ int Fork() {
     }
     return ret;
 }
-int Write(int fd, void *buf, size_t nbytes) {
-    int ret = write(fd, buf, nbytes);
-    if (ret < 0) {
-        perror("Error on writing in file descriptor");
-        fflush(stdout);
-        getchar();
-        exit(EXIT_FAILURE);
+
+void Write(int fd, char* str, int str_len) {
+    ssize_t bytes_written;
+
+    bytes_written = write(fd, str, str_len);
+    if (bytes_written < 0) {
+        perror("write()");
+        exit(0);
     }
-    return ret;
+}
+
+void Read(int fd, char* msg_received, int msg_length) {
+    ssize_t bytes_read;
+    bytes_read = read(fd, msg_received, msg_length);
+
+    if (bytes_read < 0) {
+        perror("read()");
+        exit(0);
+    }
 }
 
 int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
