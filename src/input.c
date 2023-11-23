@@ -8,12 +8,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ipc.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/ipc.h>
 
 // WD pid
 pid_t WD_pid;
@@ -167,7 +167,7 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
     //           |
     //         Y |
     //           V
-    
+
     // Depending on the pressed key the force is updated accordingly
     switch (input) {
     case 'q':
@@ -208,7 +208,7 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
         break;
     }
 
-    // If the force goes too big than is set as the max value that has 
+    // If the force goes too big than is set as the max value that has
     // been read from the parameters file
     if (to_update->x_component > max_force)
         to_update->x_component = max_force;
@@ -235,24 +235,24 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    //path of the pid file
+    // path of the pid file
     char filename2_string[80];
     sprintf(filename2_string, "../file/pid.txt");
 
-    //get current pid and save it in a string
+    // get current pid and save it in a string
     int input_pid = getpid();
     char input_pid_str[10];
     sprintf(input_pid_str, "%d", input_pid);
 
-    //write input pid in the file
+    // write input pid in the file
     FILE *F1;
     F1 = fopen(filename2_string, "w");
     fprintf(F1, "%s\n", input_pid_str);
     fclose(F1);
 
-    //START OF NCURSES---------------------------------------
+    // START OF NCURSES---------------------------------------
 
-    // The max value that the force applied to the drone 
+    // The max value that the force applied to the drone
     // for each axis is read.
     float max_force = get_param("input", "max_force");
 
@@ -270,8 +270,10 @@ int main(int argc, char *argv[]) {
     /// initializing share memory and semaphores
     // initialize semaphor
     sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    sem_t *sem_position = Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    sem_t *sem_velocity = Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_position =
+        Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_velocity =
+        Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
     // initialized to 0 until shared memory is instantiated
 
     // create shared memory object
@@ -288,7 +290,7 @@ int main(int argc, char *argv[]) {
     initscr();
     // Disable line buffering
     cbreak();
-    // Disable echo of pressed characters in order to not have 
+    // Disable echo of pressed characters in order to not have
     // the keys pressed to make the drone move appear on the screen
     noecho();
     // Hide the cursor in order to net see the carret while it's Displaying
@@ -296,8 +298,8 @@ int main(int argc, char *argv[]) {
     curs_set(0);
     // Enable the colors for ncurses
     start_color();
-    // Use the default terminal colors. This is usefull while displaying the 
-    // current background color and leave it as the same as the one of the 
+    // Use the default terminal colors. This is usefull while displaying the
+    // current background color and leave it as the same as the one of the
     // current terminal
     use_default_colors();
     // The use of use_default_colors comes into play here where the color of the
@@ -318,18 +320,18 @@ int main(int argc, char *argv[]) {
     WINDOW *bc_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 6);
     WINDOW *br_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6 + 12);
 
-    // The variable in which to store the input pressed by the user is 
+    // The variable in which to store the input pressed by the user is
     // initialized here
     char input;
 
-    // The value of the rate reductor for the read from the paraeters file is 
+    // The value of the rate reductor for the read from the paraeters file is
     // first set here. This is a counter that is decreased for each cycle in
     // the main while loop. It is a way to reduce the number of reads from the
     // parameters file
     int reading_rate_reductor = get_param("input", "reading_rate_reductor");
 
     while (1) {
-        // updating values to show in the interface. First the position 
+        // updating values to show in the interface. First the position
         // is updated
         Sem_wait(sem_position);
         sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
@@ -343,24 +345,24 @@ int main(int argc, char *argv[]) {
                &drone_current_velocity.y_component);
         Sem_post(sem_velocity);
 
-        // updating constants at runtime when the reading_rate_reductor goes to 0
+        // updating constants at runtime when the reading_rate_reductor goes to
+        // 0
         if (!reading_rate_reductor--) {
             reading_rate_reductor = get_param("input", "reading_rate_reductor");
             force_step = get_param("input", "force_step");
             max_force = get_param("input", "max_force");
         }
 
-        // Timeout sets the time in nanoseconds that getch should wait if no input 
-        // is received. This is the equivalent of having:
-        // usleep(100000)
+        // Timeout sets the time in nanoseconds that getch should wait if no
+        // input is received. This is the equivalent of having: usleep(100000)
         // non_blocking_getch()
         timeout(100);
         input = getch();
 
-        // Calculate the currently acting force on the drone by sending the 
+        // Calculate the currently acting force on the drone by sending the
         // currently pressed key
-        update_force(&drone_current_force, input, force_step, shm_ptr, sem_force,
-                     max_force);
+        update_force(&drone_current_force, input, force_step, shm_ptr,
+                     sem_force, max_force);
 
         // Write to the shared memory the current force value
         Sem_wait(sem_force);
@@ -369,8 +371,9 @@ int main(int argc, char *argv[]) {
                 drone_current_force.y_component);
         Sem_post(sem_force);
 
-        // Destroy all the windows in order to create the animation and guarantee
-        // that the windows will be refreshed in case of the resizing of the terminal
+        // Destroy all the windows in order to create the animation and
+        // guarantee that the windows will be refreshed in case of the resizing
+        // of the terminal
         destroy_input_display(tl_win);
         destroy_input_display(left_split);
         destroy_input_display(right_split);
@@ -462,7 +465,7 @@ int main(int argc, char *argv[]) {
         mvwprintw(right_split, LINES / 10 + 10, COLS / 10, "}");
 
         // Displaying the current force beeing applied on the drone only by the
-        // user. So no border effect are taken into consideration while 
+        // user. So no border effect are taken into consideration while
         // displaying these values.
         mvwprintw(right_split, LINES / 10 + 12, COLS / 10, "force {");
         mvwprintw(right_split, LINES / 10 + 13, COLS / 10, "\tx: %f",
@@ -498,3 +501,4 @@ int main(int argc, char *argv[]) {
     Sem_unlink(SEM_PATH_VELOCITY);
     munmap(shm_ptr, MAX_SHM_SIZE);
     return 0;
+}

@@ -81,14 +81,16 @@ int main(int argc, char *argv[]) {
         Ftruncate(shm, MAX_SHM_SIZE);
 
         // map pointer
-        void *shm_ptr = Mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE,
+        void *shm_ptr = Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE,
                              MAP_SHARED, shm, 0);
         memset(shm_ptr, 0, MAX_SHM_SIZE);
 
         // every two seconds write in the logfile the state of the drone (it
         // would be better to write only if the status has changed)
         while (1) {
-            Sem_wait(sem_id);
+            Sem_wait(sem_force);
+            Sem_wait(sem_velocity);
+            Sem_wait(sem_position);
             /*
             memcpy(status, shm_ptr, shared_seg_size);
             printf("%s\t",status);
@@ -99,7 +101,9 @@ int main(int argc, char *argv[]) {
             F0 = fopen(filename_string, "a");
             fprintf(F0, "The x-y position of the drone is: %f %f\n", drone_current_pos.x, drone_current_pos.y);
             fclose(F0);
-            Sem_post(sem_id);
+            Sem_post(sem_position);
+            Sem_post(sem_velocity);
+            Sem_post(sem_force);
 
             // TODO TEMPORANEO
             // Write(server_map[1],"123.45|234.23", 14);
@@ -115,7 +119,7 @@ int main(int argc, char *argv[]) {
         Sem_unlink(SEM_PATH_FORCE);
         Sem_unlink(SEM_PATH_POSITION);
         Sem_unlink(SEM_PATH_VELOCITY);
-        munmap(shm_ptr, shared_seg_size);
+        munmap(shm_ptr, MAX_SHM_SIZE);
 
         return 0;
 

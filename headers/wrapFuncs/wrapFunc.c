@@ -18,7 +18,7 @@ int Wait(int *wstatus) {
     return ret;
 }
 
-int Waitpid(pid_t pid, int *wstatus, int options){
+int Waitpid(pid_t pid, int *wstatus, int options) {
     int ret = waitpid(pid, wstatus, options);
     if (ret < 0) {
         perror("Error on waitpid execution");
@@ -29,8 +29,7 @@ int Waitpid(pid_t pid, int *wstatus, int options){
     return ret;
 }
 
-
-int Execvp(const char* file, char** args){
+int Execvp(const char *file, char **args) {
     int ret = execvp(file, args);
     if (ret < 0) {
         perror("Error on execvp execution");
@@ -52,24 +51,26 @@ int Fork() {
     return ret;
 }
 
-void Write(int fd, char* str, int str_len) {
-    ssize_t bytes_written;
-
-    bytes_written = write(fd, str, str_len);
-    if (bytes_written < 0) {
-        perror("write()");
-        exit(0);
+int Read(int fd, void *buf, size_t nbytes) {
+    int ret = read(fd, buf, nbytes);
+    if (ret < 0) {
+        perror("Error on reading from file descriptor");
+        fflush(stdout);
+        getchar();
+        exit(EXIT_FAILURE);
     }
+    return ret;
 }
 
-void Read(int fd, char* msg_received, int msg_length) {
-    ssize_t bytes_read;
-    bytes_read = read(fd, msg_received, msg_length);
-
-    if (bytes_read < 0) {
-        perror("read()");
-        exit(0);
+int Write(int fd, void *buf, size_t nbytes) {
+    int ret = write(fd, buf, nbytes);
+    if (ret < 0) {
+        perror("Error on writing to file descriptor");
+        fflush(stdout);
+        getchar();
+        exit(EXIT_FAILURE);
     }
+    return ret;
 }
 
 int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
@@ -226,8 +227,8 @@ int Flock(int fd, int operation) {
     return ret;
 }
 
-FILE* Fopen(const char* pathname, const char* mode) {
-    FILE* ret = fopen(pathname, mode);
+FILE *Fopen(const char *pathname, const char *mode) {
+    FILE *ret = fopen(pathname, mode);
     if (ret == NULL) {
         perror("Error on executing fopen");
         fflush(stdout);
