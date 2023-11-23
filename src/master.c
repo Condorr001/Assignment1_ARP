@@ -61,29 +61,29 @@ int main(int argc, char *argv[]) {
             }
             // TODO change back -2 to -1
             //spawn the drone
-            if (i > 0 && i < num_children - 2) {
+            if (i > 0 && i < num_children - 1) {
                 char *arg_list[] = {programs[i], NULL};
                 spawn(arg_list);
             }
 
             // spawn the last program, so the WD, which needs all the processes
-            // PIDs (no input as it's executed with konsole)
+            // PIDs
             if (i == num_children - 1) {
-                for (int i = 0; i < num_children - 2; i++)
+                for (int i = 0; i < num_children - 1; i++)
                     sprintf(child_pids_str[i], "%d", child[i]);
 
                 char *arg_list[] = {programs[i], child_pids_str[0],
-                                    child_pids_str[1], NULL};
+                                    child_pids_str[1], child_pids_str[2], NULL};
                 spawn(arg_list);
             }
         } else {
-            printf("Spawned child with pid %d\n", child[i]);
+            //printf("Spawned child with pid %d\n", child[i]);
         }
     }
 
     printf("Server pid is %d\n", child[0]);
     printf("Drone pid is %d\n", child[1]);
-    printf("Input pid is %d\n", child[2]);
+    printf("Konsole of Input pid is %d\n", child[2]);
     printf("WD pid is %d\n", child[3]);
     // wait for all children to terminate
     for (int i = 0; i < num_children; i++) {

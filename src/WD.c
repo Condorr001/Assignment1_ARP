@@ -12,13 +12,16 @@
 #include "constants.h"
 #include "wrapFuncs/wrapFunc.h"
 
-#define DT 20 // Time period for timeout in seconds
+#define DT 4 // Time period for timeout in seconds
 
 //number of processes to monitorate
 int num_processes = NUM_PROCESSES;
 
 //array for P's pids
 int p_pids[3];
+
+//pid of the konsole executing input
+int pid_konsole_input;
 
 //string for input pid
 char input_pid_str[10];
@@ -65,9 +68,10 @@ int main(int argc, char *argv[]) {
     char filename2_string[80];
     sprintf(filename2_string, "../file/pid.txt");
 
-    if (argc == num_processes) {
+    if (argc == num_processes+1) {
         for (int i = 0; i < num_processes-1; i++)
             sscanf(argv[i + 1], "%d", &p_pids[i]);
+        sscanf(argv[3], "%d", &pid_konsole_input);
     } 
     else {
         perror("arg_list");
@@ -135,6 +139,7 @@ int main(int argc, char *argv[]) {
 
                     for(int i = 0; i < num_processes; i++)
                         kill(p_pids[i], SIGKILL);
+                    kill(pid_konsole_input, SIGKILL);
 
                     return 0;
                 }
