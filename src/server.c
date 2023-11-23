@@ -45,9 +45,16 @@ int main(int argc, char *argv[]) {
         close(server_map[0]);
 
         // initialize semaphore
-        sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
+        sem_t *sem_force =
+            Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
+        sem_t *sem_position =
+            Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+        sem_t *sem_velocity =
+            Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
         // initialized to 0 until shared memory is instantiated
-        Sem_init(sem_id, 1, 1);
+        Sem_init(sem_force, 1, 1);
+        Sem_init(sem_position, 1, 1);
+        Sem_init(sem_velocity, 1, 1);
 
         // here goes what is shared with the drone (where is it, direction of
         // movement etc.) My idea is to have a shared string where the drone
@@ -67,18 +74,19 @@ int main(int argc, char *argv[]) {
                              MAP_SHARED, shm, 0);
         memset(shm_ptr, 0, MAX_SHM_SIZE);
 
-        // post semaphore
-        sem_post(sem_id);
-
         // every two seconds write in the logfile the state of the drone (it
         // would be better to write only if the status has changed)
         while (1) {
-            Sem_wait(sem_id);
+            Sem_wait(sem_position);
+            Sem_wait(sem_force);
+            Sem_wait(sem_velocity);
             memcpy(status, shm_ptr, shared_seg_size);
-            printf("%s\t",status);
-            printf("%s\n", status+SHM_OFFSET_FORCE_COMPONENTS);
+            printf("%s\t", status);
+            printf("%s\n", status + SHM_OFFSET_FORCE_COMPONENTS);
             // write in the logfile
-            Sem_post(sem_id);
+            Sem_post(sem_velocity);
+            Sem_post(sem_force);
+            Sem_post(sem_position);
 
             // TODO TEMPORANEO
             // Write(server_map[1],"123.45|234.23", 14);
@@ -88,8 +96,12 @@ int main(int argc, char *argv[]) {
 
         // clean up
         shm_unlink(SHMOBJ_PATH);
-        Sem_close(sem_id);
-        Sem_unlink(SEM_PATH);
+        Sem_close(sem_velocity);
+        Sem_close(sem_force);
+        Sem_close(sem_position);
+        Sem_unlink(SEM_PATH_FORCE);
+        Sem_unlink(SEM_PATH_POSITION);
+        Sem_unlink(SEM_PATH_VELOCITY);
         munmap(shm_ptr, shared_seg_size);
 
         return 0;

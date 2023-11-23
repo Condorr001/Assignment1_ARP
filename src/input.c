@@ -153,12 +153,12 @@ float slow_down(float force_value, float step) {
 }
 
 void update_force(struct force *to_update, int input, float step, void *shm_ptr,
-                  sem_t *sem_id, float max_force) {
+                  sem_t *sem_force, float max_force) {
     // First we need to read the previous value of the force
-    Sem_wait(sem_id);
+    Sem_wait(sem_force);
     sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
            &to_update->x_component, &to_update->y_component);
-    Sem_post(sem_id);
+    Sem_post(sem_force);
     // Note that the axis are positioned in this way
     //                     X
     //           +--------->
@@ -251,9 +251,10 @@ int main(int argc, char *argv[]) {
 
     /// initializing share memory and semaphores
     // initialize semaphor
-    sem_t *sem_id = Sem_open(SEM_PATH, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_position = Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_velocity = Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
     // initialized to 0 until shared memory is instantiated
-    // Sem_init(sem_id, 1, 0);
 
     // create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
@@ -312,17 +313,17 @@ int main(int argc, char *argv[]) {
     while (1) {
         // updating values to show in the interface. First the position 
         // is updated
-        Sem_wait(sem_id);
+        Sem_wait(sem_position);
         sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
                &drone_current_pos.y);
-        Sem_post(sem_id);
+        Sem_post(sem_position);
 
         // Now also the velocity gets updated
-        Sem_wait(sem_id);
+        Sem_wait(sem_velocity);
         sscanf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
                &drone_current_velocity.x_component,
                &drone_current_velocity.y_component);
-        Sem_post(sem_id);
+        Sem_post(sem_velocity);
 
         // updating constants at runtime when the reading_rate_reductor goes to 0
         if (!reading_rate_reductor--) {
@@ -340,15 +341,15 @@ int main(int argc, char *argv[]) {
 
         // Calculate the currently acting force on the drone by sending the 
         // currently pressed key
-        update_force(&drone_current_force, input, force_step, shm_ptr, sem_id,
+        update_force(&drone_current_force, input, force_step, shm_ptr, sem_force,
                      max_force);
 
         // Write to the shared memory the current force value
-        Sem_wait(sem_id);
+        Sem_wait(sem_force);
         sprintf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                 drone_current_force.x_component,
                 drone_current_force.y_component);
-        Sem_post(sem_id);
+        Sem_post(sem_force);
 
         // Destroy all the windows in order to create the animation and guarantee
         // that the windows will be refreshed in case of the resizing of the terminal
@@ -471,8 +472,12 @@ int main(int argc, char *argv[]) {
 
     // Cleaning up
     shm_unlink(SHMOBJ_PATH);
-    Sem_close(sem_id);
-    Sem_unlink(SEM_PATH);
+    Sem_close(sem_force);
+    Sem_close(sem_velocity);
+    Sem_close(sem_position);
+    Sem_unlink(SEM_PATH_POSITION);
+    Sem_unlink(SEM_PATH_FORCE);
+    Sem_unlink(SEM_PATH_VELOCITY);
     munmap(shm_ptr, MAX_SHM_SIZE);
     return 0;
 }

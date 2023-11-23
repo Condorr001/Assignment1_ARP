@@ -5,7 +5,9 @@
 #define NUM_PROCESSES 3
 
 #define SHMOBJ_PATH "/shm_server"
-#define SEM_PATH "/sem_server"
+#define SEM_PATH_POSITION "/sem_position"
+#define SEM_PATH_FORCE "/sem_force"
+#define SEM_PATH_VELOCITY "/sem_velocity"
 
 #define MAX_SHM_SIZE 1024
 #define SHM_OFFSET_POSITION 0

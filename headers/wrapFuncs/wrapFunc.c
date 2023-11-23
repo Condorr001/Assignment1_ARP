@@ -215,3 +215,25 @@ int Sem_unlink(const char *name) {
     }
     return ret;
 }
+
+int Flock(int fd, int operation) {
+    int ret = flock(fd, operation);
+    if (ret < 0) {
+        perror("Error on executing flock");
+        fflush(stdout);
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
+
+FILE* Fopen(const char* pathname, const char* mode) {
+    FILE* ret = fopen(pathname, mode);
+    if (ret == NULL) {
+        perror("Error on executing fopen");
+        fflush(stdout);
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
