@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -33,7 +34,102 @@ float repulsive_force(float distance, float function_scale,
            (distance / function_scale);
 }
 
+float diag(float side) {
+    // Beeing the sqrt a slow operation and supposing that
+    // this system would be required to be the fastest possible
+    // a static value for the half of the sqrt of 2 is used instead of the
+    // computation of sqrt
+    float sqrt2_half = 0.7071;
+    // The dimension of the diagonal of the square is returned
+    return side * sqrt2_half;
+}
+
+float slow_down(float force_value, float step) {
+    // If the force value is positive then we need to subtract
+    // the step from it. If after the subtraction the value is negative, then
+    // it is set to 0 because this is a breaking function and this means
+    // that the force is no longer present.
+    // The same goes for the negative value
+    if (force_value > 0) {
+        force_value -= step;
+        if (force_value < 0)
+            force_value = 0;
+    } else if (force_value < 0) {
+        force_value += step;
+        if (force_value > 0)
+            force_value = 0;
+    }
+    return force_value;
+}
+
+void update_force(struct force *to_update, int input, float step,
+                  float max_force) {
+    // Note that the axis are positioned in this way
+    //                     X
+    //           +--------->
+    //           |
+    //           |
+    //         Y |
+    //           V
+
+    // Depending on the pressed key the force is updated accordingly
+    switch (input) {
+    case 'q':
+        to_update->x_component -= diag(step);
+        to_update->y_component -= diag(step);
+        break;
+    case 'w':
+        to_update->y_component -= step;
+        break;
+    case 'e':
+        to_update->x_component += diag(step);
+        to_update->y_component -= diag(step);
+        break;
+    case 'a':
+        to_update->x_component -= step;
+        break;
+    case 's':
+        to_update->x_component = slow_down(to_update->x_component, step);
+        to_update->y_component = slow_down(to_update->y_component, step);
+        break;
+    case 'd':
+        to_update->x_component += step;
+        break;
+    case 'z':
+        to_update->x_component -= diag(step);
+        to_update->y_component += diag(step);
+        break;
+    case 'x':
+        to_update->y_component += step;
+        break;
+    case 'c':
+        to_update->x_component += diag(step);
+        to_update->y_component += diag(step);
+        break;
+    case ' ':
+        to_update->x_component = slow_down(to_update->x_component, step);
+        to_update->y_component = slow_down(to_update->y_component, step);
+        break;
+    }
+
+    // If the force goes too big than is set as the max value that has
+    // been read from the parameters file
+    if (to_update->x_component > max_force)
+        to_update->x_component = max_force;
+    if (to_update->y_component > max_force)
+        to_update->y_component = max_force;
+    if (to_update->x_component < -max_force)
+        to_update->x_component = -max_force;
+    if (to_update->y_component < -max_force)
+        to_update->y_component = -max_force;
+}
+
 int main(int argc, char *argv[]) {
+    int read_fd;
+    int write_fd;
+    sscanf(argv[1], "%d", &read_fd);
+    sscanf(argv[2], "%d", &write_fd);
+    close(write_fd);
     // signal setup
     struct sigaction sa;
     // memset(&sa, 0, sizeof(sa));
@@ -114,6 +210,15 @@ int main(int argc, char *argv[]) {
     void *shm_ptr =
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
+    fd_set readfds;
+    fd_set master;
+    FD_ZERO(&readfds);
+    FD_ZERO(&master);
+    FD_SET(read_fd, &master);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = (1000000 * T);
     while (1) {
         // If reading_rate_reductor is equal to 0 is time to read again from the
         // parameters file
@@ -130,10 +235,21 @@ int main(int argc, char *argv[]) {
         }
         // The semaphore is taken in order to read the force components as
         // given by the user in the input process
-        Sem_wait(sem_force);
-        sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
-               &drone_force.x_component, &drone_force.y_component);
-        Sem_post(sem_force);
+
+        readfds = master;
+        Select(read_fd + 1, &readfds, NULL, NULL, &timeout);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = (1000000 * T);
+        if (FD_ISSET(read_fd, &readfds)) {
+            char aux[2];
+            int ret = Read(read_fd, aux, 2);
+            if(ret == 0){
+                printf("Pipe closed\n");
+                close(read_fd);
+            }
+            update_force(&drone_force, aux[0], 10, 150);
+        }
+
 
         // Calculating repulsive force from sides
         // note that in the docs the image of the function is provided and it
@@ -208,7 +324,7 @@ int main(int argc, char *argv[]) {
         // amount to sleep for in microsecons. So 1 second in microseconds is
         // given and then multiplied by T to get the correct amount of
         // microseconds to sleep for.
-        usleep(1000000 * T);
+        //usleep(1000000 * T);
     }
 
     // Cleaning up
@@ -220,5 +336,6 @@ int main(int argc, char *argv[]) {
     Sem_unlink(SEM_PATH_POSITION);
     Sem_unlink(SEM_PATH_VELOCITY);
     munmap(shm_ptr, MAX_SHM_SIZE);
+    close(read_fd);
     return 0;
 }

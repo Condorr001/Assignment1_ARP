@@ -155,11 +155,6 @@ float slow_down(float force_value, float step) {
 
 void update_force(struct force *to_update, int input, float step, void *shm_ptr,
                   sem_t *sem_force, float max_force) {
-    // First we need to read the previous value of the force
-    Sem_wait(sem_force);
-    sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
-           &to_update->x_component, &to_update->y_component);
-    Sem_post(sem_force);
     // Note that the axis are positioned in this way
     //                     X
     //           +--------->
@@ -221,6 +216,11 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
 }
 
 int main(int argc, char *argv[]) {
+    int reading_fd;
+    int writing_fd;
+    sscanf(argv[1], "%d", &reading_fd);
+    sscanf(argv[2], "%d", &writing_fd);
+    close(reading_fd);
 
     // signal setup
     struct sigaction sa;
@@ -332,6 +332,8 @@ int main(int argc, char *argv[]) {
     // parameters file
     int reading_rate_reductor = get_param("input", "reading_rate_reductor");
 
+
+    timeout(100);
     while (1) {
         // updating values to show in the interface. First the position
         // is updated
@@ -358,20 +360,15 @@ int main(int argc, char *argv[]) {
         // Timeout sets the time in nanoseconds that getch should wait if no
         // input is received. This is the equivalent of having: usleep(100000)
         // non_blocking_getch()
-        timeout(100);
         input = getch();
+        if(input != ERR){
+            Write(writing_fd, &input, 2);
+        }
 
         // Calculate the currently acting force on the drone by sending the
         // currently pressed key
         update_force(&drone_current_force, input, force_step, shm_ptr,
                      sem_force, max_force);
-
-        // Write to the shared memory the current force value
-        Sem_wait(sem_force);
-        sprintf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
-                drone_current_force.x_component,
-                drone_current_force.y_component);
-        Sem_post(sem_force);
 
         // Destroy all the windows in order to create the animation and
         // guarantee that the windows will be refreshed in case of the resizing
@@ -502,5 +499,6 @@ int main(int argc, char *argv[]) {
     Sem_unlink(SEM_PATH_FORCE);
     Sem_unlink(SEM_PATH_VELOCITY);
     munmap(shm_ptr, MAX_SHM_SIZE);
+    close(writing_fd);
     return 0;
 }

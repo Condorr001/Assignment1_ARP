@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     // pipe for the communication between input and drone
     int ItoD[2];
-
+    Pipe(ItoD);
     // value for waiting for the children to terminate
     int res;
 
@@ -55,14 +55,18 @@ int main(int argc, char *argv[]) {
 
             // spawn the drone and the input programs
             // TODO maybe
+            char aux1[10];
+            char aux2[10];
+            sprintf(aux1, "%d", ItoD[0]);
+            sprintf(aux2, "%d", ItoD[1]);
             if (i == 2) {
-                char *tmp[] = {"konsole", "-e", programs[i], NULL};
+                char *tmp[] = {"konsole", "-e", programs[i], aux1, aux2, NULL};
                 Execvp("konsole", tmp);
             }
             // TODO change back -2 to -1
             //spawn the drone
             if (i > 0 && i < num_children - 1) {
-                char *arg_list[] = {programs[i], NULL};
+                char *arg_list[] = {programs[i],aux1, aux2, NULL};
                 spawn(arg_list);
             }
 
