@@ -29,6 +29,9 @@ char input_pid_str[10];
 // initializer for arrived_pids
 int count = 0;
 
+//check of kill
+int check;
+
 // pid of the dead process
 int fault_pid;
 
@@ -90,12 +93,13 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         for (int i = 0; i < num_processes; i++) {
-            kill(p_pids[i], SIGUSR1);
+            check = Kill(p_pids[i], SIGUSR1);
             sleep(DT);
 
-            if(count == 0) {
+            if (check == -1 || count == 0) {
                 fault_pid = p_pids[i];
-                F0 = fopen(filename_string, "a");
+                FILE *F0;
+                F0 = Fopen(filename_string, "a");
                 fprintf(F0,
                         "WD killed all processes because of process with "
                         "pid %d\n",
@@ -103,13 +107,13 @@ int main(int argc, char *argv[]) {
                 fclose(F0);
 
                 for (int i = 0; i < num_processes; i++)
-                    kill(p_pids[i], SIGKILL);
-                kill(pid_konsole_input, SIGKILL);
+                    Kill(p_pids[i], SIGKILL);
+                Kill(pid_konsole_input, SIGKILL);
 
                 return 0;
             }
 
-            else
+            else 
                 count = 0;
         }
     }
