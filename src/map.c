@@ -78,16 +78,16 @@ int main(int argc, char *argv[]) {
     
     //named pipe (fifo) to send the pid to the WD
     int fd; 
-    char * fifo_one = "/tmp/fifo_one"; 
-    mkfifo(fifo_one, 0666); 
+    char * fifo_one = "/tmp/fifo"; 
+    Mkfifo(fifo_one, 0666); 
 
     int map_pid = getpid();
     char map_pid_str[10];
     sprintf(map_pid_str, "%d", map_pid);
 
-    fd = open(fifo_one, O_WRONLY);
-    write(fd, map_pid_str, strlen(map_pid_str)+1); 
-    close(fd); 
+    fd = Open(fifo_one, O_WRONLY);
+    Write(fd, map_pid_str, strlen(map_pid_str)+1); 
+    Close(fd); 
 
     // Setting up the struct in which to store the position of the drone
     // in order to calculate the current position on the screen of the drone

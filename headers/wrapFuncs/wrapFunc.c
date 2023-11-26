@@ -6,6 +6,8 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <sys/stat.h> 
+#include <sys/types.h> 
 
 int Wait(int *wstatus) {
     int ret = wait(wstatus);
@@ -251,4 +253,17 @@ int Kill2(int pid, int signal) {
     if (ret < 0)
         return -1;
     return 0;
+}
+
+void Mkfifo(const char *fifo_path, int permit) {
+    /*if (mkfifo(fifo_path, permit) < 0) {
+        perror("mkfifo()");
+        exit(EXIT_FAILURE);
+    }*/
+    if (access(fifo_path, F_OK) < 0) {
+        if (mkfifo(fifo_path, permit) < 0) {
+            perror("mkfifo()");
+            exit(EXIT_FAILURE);
+        }
+    } 
 }

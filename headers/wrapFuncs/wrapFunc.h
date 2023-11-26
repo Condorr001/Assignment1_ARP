@@ -30,4 +30,5 @@ FILE* Fopen(const char* pathname, const char* mode);
 int Flock(int fd, int operation);
 void Kill(int pid, int signal);
 int Kill2(int pid, int signal);
+void Mkfifo(const char *fifo_path, int permit);
 #endif // !WRAPFUNC

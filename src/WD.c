@@ -93,14 +93,14 @@ int main(int argc, char *argv[]) {
 
     //getting the map pid through the named pipe
     int fd; 
-    char * fifo_one = "/tmp/fifo_one"; 
-    mkfifo(fifo_one, 0666); 
+    char * fifo_one = "/tmp/fifo"; 
+    Mkfifo(fifo_one, 0666); 
 
     char map_pid_str[10];
 
-    fd = open(fifo_one, O_RDONLY);
-    read(fd, map_pid_str, sizeof(map_pid_str)); 
-    close(fd); 
+    fd = Open(fifo_one, O_RDONLY);
+    Read(fd, map_pid_str, sizeof(map_pid_str)); 
+    Close(fd); 
 
     //save map pid in the array
     sscanf(map_pid_str, "%d", &p_pids[3]);
