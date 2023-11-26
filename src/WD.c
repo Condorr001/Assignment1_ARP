@@ -15,10 +15,10 @@
 #define DT 1 // Time period for while loop
 
 // number of processes to monitorate
-int num_processes = NUM_PROCESSES;
+int num_processes = NUM_PROCESSES+1;
 
 // array for P's pids
-int p_pids[3];
+int p_pids[4];
 
 // pid of the konsole executing input
 int pid_konsole_input;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     char filename2_string[80];
     sprintf(filename2_string, "../file/pid.txt");
 
-    if (argc == num_processes + 1) {
+    if (argc == num_processes) {
         for (int i = 0; i < num_processes - 1; i++)
             sscanf(argv[i + 1], "%d", &p_pids[i]);
         sscanf(argv[3], "%d", &pid_konsole_input);
@@ -90,6 +90,20 @@ int main(int argc, char *argv[]) {
     fclose(F1);
 
     printf("\ninput pid is %s\n", input_pid_str);
+
+    //getting the map pid through the named pipe
+    int fd; 
+    char * fifo_one = "/tmp/fifo_one"; 
+    mkfifo(fifo_one, 0666); 
+
+    char map_pid_str[10];
+
+    fd = open(fifo_one, O_RDONLY);
+    read(fd, map_pid_str, sizeof(map_pid_str)); 
+    close(fd); 
+
+    //save map pid in the array
+    sscanf(map_pid_str, "%d", &p_pids[3]);
 
     while (1) {
         for (int i = 0; i < num_processes; i++) {

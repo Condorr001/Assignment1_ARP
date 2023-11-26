@@ -11,8 +11,21 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <sys/stat.h> 
+#include <sys/types.h> 
+
+// WD pid
+pid_t WD_pid;
+
+void signal_handler(int signo, siginfo_t *info, void *context) {
+    if (signo == SIGUSR1) {
+        WD_pid = info->si_pid;
+        Kill(WD_pid, SIGUSR2);
+    }
+}
 
 WINDOW *create_map_win(int height, int width, int starty, int startx) {
     WINDOW *local_win;
@@ -48,6 +61,34 @@ void destroy_map_win(WINDOW *local_win) {
 }
 
 int main(int argc, char *argv[]) {
+    // signal setup
+    struct sigaction sa;
+    // memset(&sa, 0, sizeof(sa));
+
+    sa.sa_sigaction = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    // The restart flag is used to restart all those syscalls that can get
+    // interrupted by signals
+    sa.sa_flags = SA_SIGINFO | SA_RESTART;
+
+    if (sigaction(SIGUSR1, &sa, NULL) < 0) {
+        perror("SIGUSR1: sigaction()");
+        exit(1);
+    }
+    
+    //named pipe (fifo) to send the pid to the WD
+    int fd; 
+    char * fifo_one = "/tmp/fifo_one"; 
+    mkfifo(fifo_one, 0666); 
+
+    int map_pid = getpid();
+    char map_pid_str[10];
+    sprintf(map_pid_str, "%d", map_pid);
+
+    fd = open(fifo_one, O_WRONLY);
+    write(fd, map_pid_str, strlen(map_pid_str)+1); 
+    close(fd); 
+
     // Setting up the struct in which to store the position of the drone
     // in order to calculate the current position on the screen of the drone
     struct pos drone1_pos;
