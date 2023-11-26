@@ -28,5 +28,6 @@ int Sem_close(sem_t *sem);
 int Sem_unlink(const char *name);
 FILE* Fopen(const char* pathname, const char* mode);
 int Flock(int fd, int operation);
-int Kill(int pid, int signal);
+void Kill(int pid, int signal);
+int Kill2(int pid, int signal);
 #endif // !WRAPFUNC

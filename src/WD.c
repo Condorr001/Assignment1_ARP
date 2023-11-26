@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         for (int i = 0; i < num_processes; i++) {
-            check = Kill(p_pids[i], SIGUSR1);
+            check = Kill2(p_pids[i], SIGUSR1);
             sleep(DT);
 
             if (check == -1 || count == 0) {
@@ -107,8 +107,8 @@ int main(int argc, char *argv[]) {
                 fclose(F0);
 
                 for (int i = 0; i < num_processes; i++)
-                    Kill(p_pids[i], SIGKILL);
-                Kill(pid_konsole_input, SIGKILL);
+                    Kill2(p_pids[i], SIGKILL);
+                Kill2(pid_konsole_input, SIGKILL);
 
                 return 0;
             }

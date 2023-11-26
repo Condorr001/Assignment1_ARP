@@ -238,7 +238,15 @@ FILE *Fopen(const char *pathname, const char *mode) {
     return ret;
 }
 
-int Kill(int pid, int signal) {
+void Kill(int pid, int signal) {
+    int ret = kill(pid, signal);
+    if (ret < 0) {
+        perror("kill()");
+        exit(EXIT_FAILURE);
+    }
+}
+
+int Kill2(int pid, int signal) {
     int ret = kill(pid, signal);
     if (ret < 0)
         return -1;
