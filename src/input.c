@@ -237,20 +237,18 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // path of the pid file
-    char filename2_string[80];
-    sprintf(filename2_string, "../file/pid.txt");
+    //named pipe (fifo) to send the pid to the WD
+    int fd; 
+    char * fifo_two = "/tmp/fifo_two"; 
+    Mkfifo(fifo_two, 0666); 
 
-    // get current pid and save it in a string
     int input_pid = getpid();
     char input_pid_str[10];
     sprintf(input_pid_str, "%d", input_pid);
 
-    // write input pid in the file
-    FILE *F1;
-    F1 = fopen(filename2_string, "w");
-    fprintf(F1, "%s\n", input_pid_str);
-    fclose(F1);
+    fd = Open(fifo_two, O_WRONLY);
+    Write(fd, input_pid_str, strlen(input_pid_str)+1); 
+    Close(fd); 
 
     // START OF NCURSES---------------------------------------
 

@@ -74,33 +74,34 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // WD is faster than input. Therefore, without usleep, it reads the previous
-    // pid written by input in the pid.txt file
+    // WD is faster than input. Therefore, without usleep, it reads nothing in the named pipe
     usleep(1000000);
-    // read from pid file
-    FILE *F1;
-    F1 = Fopen(filename2_string, "r");
 
-    char *ret = fgets(input_pid_str, sizeof(input_pid_str), F1);
-    if (ret == NULL) {
-        perror("fgets()");
-    }
+    //getting the input pid through the named pipe
+    int fd1; 
+    char * fifo_two = "/tmp/fifo_two"; 
+    Mkfifo(fifo_two, 0666); 
+
+    char input_pid_str[10];
+
+    fd1 = Open(fifo_two, O_RDONLY);
+    Read(fd1, input_pid_str, sizeof(input_pid_str)); 
+    Close(fd1); 
 
     sscanf(input_pid_str, "%d", &p_pids[2]);
-    fclose(F1);
 
     printf("\ninput pid is %s\n", input_pid_str);
 
     //getting the map pid through the named pipe
-    int fd; 
+    int fd2; 
     char * fifo_one = "/tmp/fifo"; 
     Mkfifo(fifo_one, 0666); 
 
     char map_pid_str[10];
 
-    fd = Open(fifo_one, O_RDONLY);
-    Read(fd, map_pid_str, sizeof(map_pid_str)); 
-    Close(fd); 
+    fd2 = Open(fifo_one, O_RDONLY);
+    Read(fd2, map_pid_str, sizeof(map_pid_str)); 
+    Close(fd2); 
 
     //save map pid in the array
     sscanf(map_pid_str, "%d", &p_pids[3]);
