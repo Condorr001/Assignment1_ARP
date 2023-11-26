@@ -12,7 +12,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define DT 4 // Time period for timeout in seconds
+#define DT 1 // Time period for while loop
 
 // number of processes to monitorate
 int num_processes = NUM_PROCESSES;
@@ -26,23 +26,16 @@ int pid_konsole_input;
 // string for input pid
 char input_pid_str[10];
 
-// array to save pids of processes which sent a signal
-int arrived_pids[3];
-
 // initializer for arrived_pids
 int count = 0;
-
-bool switches = true;
 
 // pid of the dead process
 int fault_pid;
 
 // what to do when processes freeze
 void signal_handler(int signo, siginfo_t *info, void *context) {
-    if (signo == SIGUSR2) {
-        arrived_pids[count] = info->si_pid;
+    if (signo == SIGUSR2)
         count++;
-    }
 }
 
 int main(int argc, char *argv[]) {
@@ -84,77 +77,41 @@ int main(int argc, char *argv[]) {
     // read from pid file
     FILE *F1;
     F1 = Fopen(filename2_string, "r");
+
     char *ret = fgets(input_pid_str, sizeof(input_pid_str), F1);
     if (ret == NULL) {
-        perror("error on fgets in WD");
+        perror("fgets()");
     }
+
     sscanf(input_pid_str, "%d", &p_pids[2]);
     fclose(F1);
 
     printf("\ninput pid is %s\n", input_pid_str);
 
-    // start time for loop period
-    time_t start_time = time(NULL);
-
     while (1) {
-        // current time for loop period
-        time_t current_time = time(NULL);
+        for (int i = 0; i < num_processes; i++) {
+            kill(p_pids[i], SIGUSR1);
+            sleep(DT);
 
-        // after DT seconds check if a process is frozen
-        if (current_time - start_time >= DT) {
-            if (switches) {
-                switches = false;
+            if(count == 0) {
+                fault_pid = p_pids[i];
+                F0 = fopen(filename_string, "a");
+                fprintf(F0,
+                        "WD killed all processes because of process with "
+                        "pid %d\n",
+                        fault_pid);
+                fclose(F0);
 
-                // initialize arrived_pids to 0
                 for (int i = 0; i < num_processes; i++)
-                    arrived_pids[i] = 0;
+                    kill(p_pids[i], SIGKILL);
+                kill(pid_konsole_input, SIGKILL);
 
-                // reset count
-                count = 0;
-
-                // send a signal to each monitored process
-                for (int i = 0; i < num_processes; i++)
-                    kill(p_pids[i], SIGUSR1);
-            } else {
-                switches = true;
-
-                // if not all processes have sent a signal in response, it means
-                // that at least one process is dead
-                if (count != num_processes) {
-                    FILE *F0;
-                    F0 = fopen(filename_string, "a");
-                    fprintf(F0, "The arrived pids are: %d %d %d\n",
-                            arrived_pids[0], arrived_pids[1], arrived_pids[2]);
-                    fclose(F0);
-
-                    for (int i = 0; i < num_processes; i++) {
-                        for (int j = 0; j < count; j++) {
-                            if (p_pids[i] == arrived_pids[j])
-                                break;
-
-                            if (j == count - 1)
-                                fault_pid = p_pids[i];
-                        }
-                    }
-
-                    // FILE *F0;
-                    F0 = fopen(filename_string, "a");
-                    fprintf(F0,
-                            "WD killed all processes because of process with "
-                            "pid %d\n",
-                            fault_pid);
-                    fclose(F0);
-
-                    for (int i = 0; i < num_processes; i++)
-                        kill(p_pids[i], SIGKILL);
-                    kill(pid_konsole_input, SIGKILL);
-
-                    return 0;
-                }
+                return 0;
             }
-            start_time = current_time;
+
+            else
+                count = 0;
         }
-        sleep(10);
     }
     return 0;
 }

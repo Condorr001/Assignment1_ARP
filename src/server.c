@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
             sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
                    &drone_current_pos.y);
             // write in the logfile
-            F0 = fopen(filename_string, "a");
+            F0 = Fopen(filename_string, "a");
             fprintf(F0, "The x-y position of the drone is: %f %f\n",
                     drone_current_pos.x, drone_current_pos.y);
             fclose(F0);
