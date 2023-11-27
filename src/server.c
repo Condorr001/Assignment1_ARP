@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 
     // logfile
     char filename_string[80];
-    sprintf(filename_string, "../file/log.log");
+    sprintf(filename_string, "log/log.log");
     FILE *F0;
 
     int pid = Fork();
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
                    &drone_current_pos.y);
             // write in the logfile
             F0 = Fopen(filename_string, "a");
-            fprintf(F0, "The x-y position of the drone is: %f %f\n",
+            fprintf(F0, "[INFO] - The x-y position of the drone is: %f %f\n",
                     drone_current_pos.x, drone_current_pos.y);
             fclose(F0);
             Sem_post(sem_position);

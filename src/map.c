@@ -119,7 +119,6 @@ int main(int argc, char *argv[]) {
     curs_set(0);
     // TODO setting up the menu
     mvprintw(0, 0, "menu");
-    mvprintw(0,10, "%d", map_pid);
     // Display the menu text
     refresh();
     // displaying the first intance of the window

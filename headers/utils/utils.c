@@ -1,6 +1,7 @@
 #include "utils/utils.h"
 #include "constants.h"
 #include "wrapFuncs/wrapFunc.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 
 // Struct in which to store the process and the various parameters
 struct kv {
+    int line;
     char process[MAX_PROCESS_NAME_LEN];
     char keys[MAX_VALUES_FOR_PROCESS][MAX_LEN_PROCESS_ATTR];
     float values[MAX_VALUES_FOR_PROCESS];
@@ -47,18 +49,24 @@ int read_parameter_file(struct kv *params) {
 
     // Try to open the configuration file. If it fails outputs an error message
     f = Fopen("conf/drone_parameters.conf", "r");
-    // Lock the file in case there will be any concurrent access, but considering
-    // that all the accesses will be in reading it won't be a big concern
+    // Lock the file in case there will be any concurrent access, but
+    // considering that all the accesses will be in reading it won't be a big
+    // concern
     Flock(fileno(f), LOCK_SH);
+
+    // counter that keeps track of the current analyzed line. It's used at the
+    // end to display at what line there is a syntax error or misconfiguration
+    int line_counter = 0;
 
     while (1) {
         // Read a line from the file
         read = getline(&line, &len, f);
+        line_counter++;
         // Please note that this function has not a wrapper function because
         // -1 is returned both in case of an error and EOF. The
         // EOF condition is used later in the function so no wrapper function
         // could be craeted
-        
+
         // If an actual line is read than remove the last character in the
         // string by assigning to it the null terminator. The last character
         // in the string at least in a linux environment will always be \n
@@ -99,17 +107,30 @@ int read_parameter_file(struct kv *params) {
             token = strtok_r(line, "=", &saveptr);
             strcpy(aux.keys[values_index], token);
             // Then tokenize the value by setting null to the line value
-            // in strtok_r. This tells the function to continue with the 
+            // in strtok_r. This tells the function to continue with the
             // processing of the previous line
             token = strtok_r(NULL, "=", &saveptr);
-            // The value token is now converted into float and saved 
+            // The value token is now converted into float and saved
             // in the values array
+            for (int i = 0; i < strlen(token); i++) {
+                if (!(isdigit(token[i]) || token[i] == '.')) {
+                    if (line)
+                        free(line);
+                    FILE *F = Fopen("log/log.log", "a");
+                    fprintf(
+                        F,
+                        "[ERROR] - Parameter must be float at line %d in config file\n",
+                        line_counter);
+                    fclose(F);
+                    exit(EXIT_FAILURE);
+                }
+            }
             float aux_value;
             sscanf(token, "%f", &aux_value);
             aux.values[values_index++] = aux_value;
         }
     }
-    
+
     // Remove the lock from the file f
     Flock(fileno(f), LOCK_UN);
     // Close the file
@@ -123,7 +144,7 @@ int read_parameter_file(struct kv *params) {
 }
 
 float get_param(char *process, char *param) {
-    // This function returns the value of the parameter specified 
+    // This function returns the value of the parameter specified
     // for the specified process
     struct kv read_values[MAX_PROCESSES];
     // The values are read from the file
@@ -141,7 +162,12 @@ float get_param(char *process, char *param) {
             }
         }
     }
-    // In case of error -1 is returned. All the values should be positive
-    // so a negative value can indicate an error
-    return -1;
+    // In case of error the process is killed, since the misconfiguration
+    // or the parsing error of a parameter would cause irreparable damage
+    // to the system
+    FILE *F = Fopen("log/log.log", "a");
+    fprintf(F, "[ERROR] - Parameter %s of process %s not found, check for syntax errors or mispells in "
+               "config file\n", param, process);
+    fclose(F);
+    exit(EXIT_FAILURE);
 }

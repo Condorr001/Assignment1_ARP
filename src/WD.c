@@ -13,6 +13,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define SLEEP_FOR 1
+
 // array for P's pids
 int p_pids[NUM_PROCESSES+2];
 
@@ -53,11 +55,9 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    int sleep_for = get_param("wd", "sleep_for");
-
     // path of the logfile
     char filename_string[80];
-    sprintf(filename_string, "../file/log.log");
+    sprintf(filename_string, "log/log.log");
 
     // argv[1] -> server
     // argv[2] -> drone
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
             // actually restarting the sleep in case it does not return 0. Now
             // it may seem a busy wait but it's actually not because of how
             // signals are handled
-            while (sleep(sleep_for))
+            while (sleep(SLEEP_FOR))
                 ;
 
             if (check == -1 || count == 0) {
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
                 FILE *F0;
                 F0 = Fopen(filename_string, "a");
                 fprintf(F0,
-                        "WD killed all processes because of process with "
+                        "[WARN] - WD killed all processes because of process with "
                         "pid %d\n",
                         fault_pid);
                 fclose(F0);
@@ -135,7 +135,6 @@ int main(int argc, char *argv[]) {
 
                 return 0;
             }
-
             else
                 count = 0;
         }

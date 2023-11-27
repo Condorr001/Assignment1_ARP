@@ -50,14 +50,12 @@ out/
 .idea/*.xml
 
 build/*
-!build/conf/
-!build/conf/drone_parameters.conf
+build/
 
 include/*
 lib/*
 bin/*
+!bin/conf/
+!bin/conf/drone_parameters.conf
+!bin/log/
 test/test_runner
-
-
-
-# Files to add
