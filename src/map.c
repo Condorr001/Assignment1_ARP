@@ -9,13 +9,13 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <string.h>
 #include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <sys/stat.h> 
-#include <sys/types.h> 
 
 // WD pid
 pid_t WD_pid;
@@ -63,7 +63,7 @@ void destroy_map_win(WINDOW *local_win) {
 int main(int argc, char *argv[]) {
     // signal setup
     struct sigaction sa;
-    // memset(&sa, 0, sizeof(sa));
+    memset(&sa, 0, sizeof(sa));
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
@@ -75,22 +75,22 @@ int main(int argc, char *argv[]) {
         perror("SIGUSR1: sigaction()");
         exit(1);
     }
-    
-    //named pipe (fifo) to send the pid to the WD
-    int fd; 
-    char * fifo_one = "/tmp/fifo"; 
-    Mkfifo(fifo_one, 0666); 
+
+    // named pipe (fifo) to send the pid to the WD
+    int fd;
+    char *fifo_one = "/tmp/fifo";
+    Mkfifo(fifo_one, 0666);
 
     int map_pid = getpid();
     char map_pids_str[20];
-    // in this way both the pid of the map process and 
+    // in this way both the pid of the map process and
     // the pid of the konsole that is running the map
     // process is passed
     sprintf(map_pids_str, "%d|%d", map_pid, getppid());
 
     fd = Open(fifo_one, O_WRONLY);
-    Write(fd, map_pids_str, strlen(map_pids_str)+1); 
-    Close(fd); 
+    Write(fd, map_pids_str, strlen(map_pids_str) + 1);
+    Close(fd);
 
     // Setting up the struct in which to store the position of the drone
     // in order to calculate the current position on the screen of the drone
@@ -98,8 +98,10 @@ int main(int argc, char *argv[]) {
 
     // initialize semaphor
     sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    sem_t *sem_position = Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    sem_t *sem_velocity = Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_position =
+        Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
+    sem_t *sem_velocity =
+        Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
     // create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);

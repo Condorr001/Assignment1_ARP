@@ -33,14 +33,6 @@ int main(int argc, char *argv[]) {
     // value for waiting for the children to terminate
     int res;
 
-    /*
-    Pipe are not needed here since we use shared memory for the server
-    // create the pipe and print the ids in a string
-    Pipe(ItoD);
-    char ItoD_string[80];
-    sprintf(ItoD_string, "%d %d", ItoD[0], ItoD[1]);
-    */
-
     for (int i = 0; i < num_children; i++) {
         child[i] = Fork();
         if (!child[i]) {
@@ -55,7 +47,7 @@ int main(int argc, char *argv[]) {
                 char *tmp[] = {"konsole", "-e", programs[i], NULL};
                 Execvp("konsole", tmp);
             }
-            //spawn the drone
+            // spawn the drone
             if (i > 0 && i < num_children - 1) {
                 char *arg_list[] = {programs[i], NULL};
                 spawn(arg_list);
@@ -71,7 +63,6 @@ int main(int argc, char *argv[]) {
                                     child_pids_str[1], child_pids_str[2], NULL};
                 spawn(arg_list);
             }
-        } else {
         }
     }
 

@@ -20,7 +20,6 @@ pid_t WD_pid;
 
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
-        //sleep(2);
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
     }
@@ -224,7 +223,7 @@ int main(int argc, char *argv[]) {
 
     // signal setup
     struct sigaction sa;
-    // memset(&sa, 0, sizeof(sa));
+    memset(&sa, 0, sizeof(sa));
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
@@ -237,18 +236,18 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    //named pipe (fifo) to send the pid to the WD
-    int fd; 
-    char * fifo_two = "/tmp/fifo_two"; 
-    Mkfifo(fifo_two, 0666); 
+    // named pipe (fifo) to send the pid to the WD
+    int fd;
+    char *fifo_two = "/tmp/fifo_two";
+    Mkfifo(fifo_two, 0666);
 
     int input_pid = getpid();
     char input_pid_str[10];
     sprintf(input_pid_str, "%d", input_pid);
 
     fd = Open(fifo_two, O_WRONLY);
-    Write(fd, input_pid_str, strlen(input_pid_str)+1); 
-    Close(fd); 
+    Write(fd, input_pid_str, strlen(input_pid_str) + 1);
+    Close(fd);
 
     // START OF NCURSES---------------------------------------
 
@@ -330,6 +329,10 @@ int main(int argc, char *argv[]) {
     // parameters file
     int reading_rate_reductor = get_param("input", "reading_rate_reductor");
 
+    // Timeout sets the time in nanoseconds that getch should wait if no
+    // input is received. This is the equivalent of having: usleep(100000)
+    // non_blocking_getch()
+    timeout(100);
     while (1) {
         // updating values to show in the interface. First the position
         // is updated
@@ -353,10 +356,6 @@ int main(int argc, char *argv[]) {
             max_force = get_param("input", "max_force");
         }
 
-        // Timeout sets the time in nanoseconds that getch should wait if no
-        // input is received. This is the equivalent of having: usleep(100000)
-        // non_blocking_getch()
-        timeout(100);
         input = getch();
 
         // Calculate the currently acting force on the drone by sending the

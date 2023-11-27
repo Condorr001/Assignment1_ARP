@@ -25,7 +25,7 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
 int main(int argc, char *argv[]) {
     // signal setup
     struct sigaction sa;
-    // memset(&sa, 0, sizeof(sa));
+    memset(&sa, 0, sizeof(sa));
 
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
@@ -61,15 +61,6 @@ int main(int argc, char *argv[]) {
         Sem_init(sem_position, 1, 1);
         Sem_init(sem_velocity, 1, 1);
 
-        /*
-        // here goes what is shared with the drone (where is it, direction of
-        // movement etc.) My idea is to have a shared string where the drone
-        // writes its state, so that the server can read it and write it in the
-        // logfile So something like:
-        char status[MAX_SHM_SIZE];
-        int shared_seg_size = MAX_SHM_SIZE;
-        */
-
         // create shared memory object
         int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
@@ -87,11 +78,7 @@ int main(int argc, char *argv[]) {
             Sem_wait(sem_force);
             Sem_wait(sem_velocity);
             Sem_wait(sem_position);
-            /*
-            memcpy(status, shm_ptr, shared_seg_size);
-            printf("%s\t",status);
-            printf("%s\n", status+SHM_OFFSET_FORCE_COMPONENTS);
-            */
+
             sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
                    &drone_current_pos.y);
             // write in the logfile

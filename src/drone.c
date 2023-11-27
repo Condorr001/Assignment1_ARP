@@ -19,7 +19,6 @@ pid_t WD_pid;
 
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
-        //sleep(1);
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
     }
@@ -36,7 +35,7 @@ float repulsive_force(float distance, float function_scale,
 int main(int argc, char *argv[]) {
     // signal setup
     struct sigaction sa;
-    // memset(&sa, 0, sizeof(sa));
+    memset(&sa, 0, sizeof(sa));
 
     // Assigning the signal handler
     sa.sa_sigaction = signal_handler;

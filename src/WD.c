@@ -16,7 +16,7 @@
 #define SLEEP_FOR 1
 
 // array for P's pids
-int p_pids[NUM_PROCESSES+2];
+int p_pids[NUM_PROCESSES + 2];
 
 // pid of the konsole executing input
 int pid_konsole_input, pid_konsole_map;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     // argv[3] -> konsole of input
     if (argc == NUM_PROCESSES) {
         for (int i = 0; i < 2; i++)
-            sscanf(argv[i + 1], "%d", &p_pids[i+2]);
+            sscanf(argv[i + 1], "%d", &p_pids[i + 2]);
         sscanf(argv[3], "%d", &pid_konsole_input);
     } else {
         perror("arg_list");
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     // getting the map pid through the named pipe
     int fd2;
     char *fifo_one = "/tmp/fifo";
-    //Mkfifo(fifo_one, 0666);
+    // Mkfifo(fifo_one, 0666);
 
     char map_pids_str[20];
 
@@ -122,20 +122,21 @@ int main(int argc, char *argv[]) {
                 fault_pid = p_pids[i];
                 FILE *F0;
                 F0 = Fopen(filename_string, "a");
-                fprintf(F0,
-                        "[WARN] - WD killed all processes because of process with "
-                        "pid %d\n",
-                        fault_pid);
+                fprintf(
+                    F0,
+                    "[WARN] - WD killed all processes because of process with "
+                    "pid %d\n",
+                    fault_pid);
                 fclose(F0);
 
-                for (int i = 0; i < NUM_PROCESSES; i++)
+                for (int i = 0; i < NUM_PROCESSES; i++) {
                     Kill2(p_pids[i], SIGKILL);
+                }
                 Kill2(pid_konsole_input, SIGKILL);
                 Kill2(pid_konsole_map, SIGKILL);
 
                 return 0;
-            }
-            else
+            } else
                 count = 0;
         }
     }
