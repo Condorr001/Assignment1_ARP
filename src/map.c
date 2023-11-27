@@ -82,11 +82,14 @@ int main(int argc, char *argv[]) {
     Mkfifo(fifo_one, 0666); 
 
     int map_pid = getpid();
-    char map_pid_str[10];
-    sprintf(map_pid_str, "%d", map_pid);
+    char map_pids_str[20];
+    // in this way both the pid of the map process and 
+    // the pid of the konsole that is running the map
+    // process is passed
+    sprintf(map_pids_str, "%d|%d", map_pid, getppid());
 
     fd = Open(fifo_one, O_WRONLY);
-    Write(fd, map_pid_str, strlen(map_pid_str)+1); 
+    Write(fd, map_pids_str, strlen(map_pids_str)+1); 
     Close(fd); 
 
     // Setting up the struct in which to store the position of the drone
@@ -116,6 +119,7 @@ int main(int argc, char *argv[]) {
     curs_set(0);
     // TODO setting up the menu
     mvprintw(0, 0, "menu");
+    mvprintw(0,10, "%d", map_pid);
     // Display the menu text
     refresh();
     // displaying the first intance of the window

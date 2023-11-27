@@ -45,16 +45,10 @@ int main(int argc, char *argv[]) {
     sprintf(filename_string, "../file/log.log");
     FILE *F0;
 
-    int server_map[2];
-    Pipe(server_map);
-
     int pid = Fork();
 
     if (pid) {
         // Father process
-        // Closing the reading pipe end from the server side
-        close(server_map[0]);
-
         // initialize semaphore
         sem_t *sem_force =
             Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
@@ -109,9 +103,6 @@ int main(int argc, char *argv[]) {
             Sem_post(sem_velocity);
             Sem_post(sem_force);
 
-            // TODO TEMPORANEO
-            // Write(server_map[1],"123.45|234.23", 14);
-
             sleep(2);
         }
 
@@ -128,16 +119,8 @@ int main(int argc, char *argv[]) {
         return 0;
 
     } else {
-
-        // closing the writing end of the map side
-        close(server_map[1]);
-
-        // converting the pipe number to string
-        char pipe1[10];
-        sprintf(pipe1, "%d", server_map[0]);
-
         // passing the required arguments to the map process
-        char *args[] = {"konsole", "-e", "./map", pipe1, NULL};
+        char *args[] = {"konsole", "-e", "./map", NULL};
         Execvp("konsole", args);
     }
 }

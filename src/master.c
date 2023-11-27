@@ -30,9 +30,6 @@ int main(int argc, char *argv[]) {
     // string to contain all che children pids (except WD)
     char child_pids_str[num_children - 1][80];
 
-    // pipe for the communication between input and drone
-    int ItoD[2];
-
     // value for waiting for the children to terminate
     int res;
 
@@ -54,12 +51,10 @@ int main(int argc, char *argv[]) {
             }
 
             // spawn the drone and the input programs
-            // TODO maybe
             if (i == 2) {
                 char *tmp[] = {"konsole", "-e", programs[i], NULL};
                 Execvp("konsole", tmp);
             }
-            // TODO change back -2 to -1
             //spawn the drone
             if (i > 0 && i < num_children - 1) {
                 char *arg_list[] = {programs[i], NULL};
@@ -77,7 +72,6 @@ int main(int argc, char *argv[]) {
                 spawn(arg_list);
             }
         } else {
-            //printf("Spawned child with pid %d\n", child[i]);
         }
     }
 
