@@ -1,6 +1,12 @@
 # Assignment 1
+## Building dependencies
+To build this project the following dependencies are needed:
++ make
++ cmake version > 3.6
++ c compiler
++ libncurses
 ## How to run
-Simply execute the run.sh script
+Simply execute the run.sh script:
 
     ./run.sh
 
