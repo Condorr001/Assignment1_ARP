@@ -20,7 +20,7 @@ the drone given the old position and the current applied forces that are given
 by the input process. This process also calculates the current speed of the 
 drone. 
 
-The formulae used to calculate the next position of the drone are the 
+The formula used to calculate the next position of the drone is the 
 following:
 ```math
 x = \frac{
