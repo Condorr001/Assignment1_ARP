@@ -23,8 +23,8 @@ drone.
 The formulae used to calculate the next position of the drone are the 
 following:
 ```math
-x = W_x + D_x - \frac{
-    \frac{M}{T^2}\cdot(x(t-2) - 2\cdot x(t-1)) + \frac{K}{T}\cdot x(t-1)
+x = \frac{
+    W_x + D_x - \frac{M}{T^2}\cdot(x(t-2) - 2\cdot x(t-1)) + \frac{K}{T}\cdot x(t-1)
 }{
     \Big(\frac{M}{T^2} + \frac{K}{T}\Big)
 }
