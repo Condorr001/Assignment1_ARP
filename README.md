@@ -6,7 +6,7 @@ To build this project the following dependencies are needed:
 + c compiler
 + libncurses
 ## How to run
-Simply execute the run.sh script:
+Simply execute the run.sh script that's found in the main folder:
 
     ./run.sh
 
