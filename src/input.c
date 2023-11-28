@@ -231,10 +231,7 @@ int main(int argc, char *argv[]) {
     // interrupted by signals
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
-    if (sigaction(SIGUSR1, &sa, NULL) < 0) {
-        perror("SIGUSR1: sigaction()");
-        exit(1);
-    }
+    Sigaction(SIGUSR1, &sa, NULL);
 
     // named pipe (fifo) to send the pid to the WD
     int fd;

@@ -50,10 +50,8 @@ int main(int argc, char *argv[]) {
     // interrupted by signals
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
-    if (sigaction(SIGUSR2, &sa, NULL) < 0) {
-        perror("SIGUSR2: sigaction()");
-        exit(1);
-    }
+    //linking the signal handler to the signal
+    Sigaction(SIGUSR2, &sa, NULL);
 
     // path of the logfile
     char filename_string[80];
@@ -106,13 +104,13 @@ int main(int argc, char *argv[]) {
     Read(fd2, map_pids_str, sizeof(map_pids_str));
     Close(fd2);
 
-    //printing the received pids to verify their correctness
-    printf("Map pids are %s\n", map_pids_str);
-
     // save map pid in the array of processes pids and the pid of the Konsole running map in a separate int variable.
     //This because the Konsole(s) do not receive nor send signals to the WD, but only need to be killed if
     //a process freezes or dies
     sscanf(map_pids_str, "%d|%d", &p_pids[1], &pid_konsole_map);
+
+    // Printing the received pids to verify their correctness
+    printf("Map pid is %d and the konsole terminal on which it runs is %d \n", p_pids[1], pid_konsole_map);
 
     while (1) {
         //iterate for the number of processes to check

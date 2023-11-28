@@ -36,10 +36,7 @@ int main(int argc, char *argv[]) {
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
     //linking the signal handler to the signal
-    if (sigaction(SIGUSR1, &sa, NULL) < 0) {
-        perror("SIGUSR1: sigaction()");
-        exit(1);
-    }
+    Sigaction(SIGUSR1, &sa, NULL);
 
     //forking so that the father can behave as the server, while the child can spawn the map
     int pid = Fork();

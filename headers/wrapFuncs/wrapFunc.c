@@ -1,13 +1,14 @@
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <sys/stat.h> 
-#include <sys/types.h> 
 
 int Wait(int *wstatus) {
     int ret = wait(wstatus);
@@ -243,7 +244,7 @@ FILE *Fopen(const char *pathname, const char *mode) {
 void Kill(int pid, int signal) {
     int ret = kill(pid, signal);
     if (ret < 0) {
-        perror("kill()");
+        perror("Error on executing kill");
         exit(EXIT_FAILURE);
     }
 }
@@ -258,8 +259,17 @@ int Kill2(int pid, int signal) {
 void Mkfifo(const char *fifo_path, int permit) {
     if (access(fifo_path, F_OK) < 0) {
         if (mkfifo(fifo_path, permit) < 0) {
-            perror("mkfifo()");
+            perror("Error on executing mkfifo");
             exit(EXIT_FAILURE);
         }
-    } 
+    }
+}
+
+void Sigaction(int signum, const struct sigaction *act,
+               struct sigaction *oldact) {
+    int ret = sigaction(signum, act, oldact);
+    if (ret < 0) {
+        perror("Error on executing sigaction");
+        exit(EXIT_FAILURE);
+    }
 }

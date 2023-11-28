@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sys/select.h>
 #include <sys/file.h>
+#include <sys/signal.h>
 
 int Wait(int *wstatus);
 int Waitpid(pid_t pid, int *wstatus, int options);
@@ -31,4 +32,5 @@ int Flock(int fd, int operation);
 void Kill(int pid, int signal);
 int Kill2(int pid, int signal);
 void Mkfifo(const char *fifo_path, int permit);
+void Sigaction(int signum, const struct sigaction* act, struct sigaction* oldact);
 #endif // !WRAPFUNC

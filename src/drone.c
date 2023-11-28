@@ -46,10 +46,7 @@ int main(int argc, char *argv[]) {
     // get interrupted by signals
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
-    if (sigaction(SIGUSR1, &sa, NULL) < 0) {
-        perror("SIGUSR1: sigaction()");
-        exit(1);
-    }
+    Sigaction(SIGUSR1, &sa, NULL);
 
     // Initializing structs to store data gotten and given by this process
     // drone_force as every other of these structs has a x and a y component
