@@ -256,10 +256,6 @@ int Kill2(int pid, int signal) {
 }
 
 void Mkfifo(const char *fifo_path, int permit) {
-    /*if (mkfifo(fifo_path, permit) < 0) {
-        perror("mkfifo()");
-        exit(EXIT_FAILURE);
-    }*/
     if (access(fifo_path, F_OK) < 0) {
         if (mkfifo(fifo_path, permit) < 0) {
             perror("mkfifo()");
