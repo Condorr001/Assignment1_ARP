@@ -50,6 +50,7 @@ out/
 .idea/*.xml
 
 build/*
+!build/.gitkeep
 
 include/*
 lib/*
