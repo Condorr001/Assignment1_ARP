@@ -50,7 +50,6 @@ out/
 .idea/*.xml
 
 build/*
-build/
 
 include/*
 lib/*
