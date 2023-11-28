@@ -30,8 +30,6 @@ int main(int argc, char *argv[]) {
     // string to contain all che children pids (except WD)
     char child_pids_str[num_children - 1][80];
 
-    // value for waiting for the children to terminate
-    int res;
 
     for (int i = 0; i < num_children; i++) {
         child[i] = Fork();
@@ -70,6 +68,10 @@ int main(int argc, char *argv[]) {
     printf("Drone pid is %d\n", child[1]);
     printf("Konsole of Input pid is %d\n", child[2]);
     printf("WD pid is %d\n", child[3]);
+
+    // value for waiting for the children to terminate
+    int res;
+
     // wait for all children to terminate
     for (int i = 0; i < num_children; i++) {
         int ret = Wait(&res);
