@@ -18,6 +18,7 @@
 // WD pid
 pid_t WD_pid;
 
+// Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
@@ -25,6 +26,7 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     }
 }
 
+// Create the outer border of the window
 WINDOW *input_display_setup(int height, int width, int starty, int startx) {
     WINDOW *local_win;
 
@@ -32,17 +34,18 @@ WINDOW *input_display_setup(int height, int width, int starty, int startx) {
     box(local_win, 0, 0); /* 0, 0 gives default characters
                            * for the vertical and horizontal
                            * lines			*/
-    // wrefresh(local_win);  /* Show that box 		*/
-
     return local_win;
 }
 
+// Destroy the map window. Useful to refresh the window once the terminal is
+// resized
 void destroy_input_display(WINDOW *local_win) {
     wborder(local_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
     wrefresh(local_win);
     delwin(local_win);
 }
 
+// Function to set the pressed input green
 void begin_format_input(int input, WINDOW *tl_win, WINDOW *tc_win,
                         WINDOW *tr_win, WINDOW *cl_win, WINDOW *cc_win,
                         WINDOW *cr_win, WINDOW *bl_win, WINDOW *bc_win,
@@ -84,6 +87,7 @@ void begin_format_input(int input, WINDOW *tl_win, WINDOW *tc_win,
     }
 }
 
+// Function to reset the color of the pressed input
 void end_format_input(int input, WINDOW *tl_win, WINDOW *tc_win, WINDOW *tr_win,
                       WINDOW *cl_win, WINDOW *cc_win, WINDOW *cr_win,
                       WINDOW *bl_win, WINDOW *bc_win, WINDOW *br_win) {
@@ -134,6 +138,7 @@ float diag(float side) {
     return side * sqrt2_half;
 }
 
+// Function to implement the decreasing of the force
 float slow_down(float force_value, float step) {
     // If the force value is positive then we need to subtract
     // the step from it. If after the subtraction the value is negative, then
@@ -152,6 +157,7 @@ float slow_down(float force_value, float step) {
     return force_value;
 }
 
+// Function to calculate the new force after the user has given another input
 void update_force(struct force *to_update, int input, float step, void *shm_ptr,
                   sem_t *sem_force, float max_force) {
     // First we need to read the previous value of the force
@@ -221,32 +227,33 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
 
 int main(int argc, char *argv[]) {
 
-    // signal setup
+    // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
 
+    // Setting the signal handler
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
-    // The restart flag is used to restart all those syscalls that can get
+    // Setting flags
+    // The SA_RESTART flag is used to restart all those syscalls that can get
     // interrupted by signals
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
+    // Enabling the handler with the specified flags
     Sigaction(SIGUSR1, &sa, NULL);
 
-    // named pipe (fifo) to send the pid to the WD
+    // Named pipe (fifo) to send the pid to the WD
     int fd;
-    char *fifo_two = "/tmp/fifo_two";
-    Mkfifo(fifo_two, 0666);
+    Mkfifo(FIFO2_PATH, 0666);
 
+    // Getting the input pid
     int input_pid = getpid();
     char input_pid_str[10];
     sprintf(input_pid_str, "%d", input_pid);
 
-    fd = Open(fifo_two, O_WRONLY);
+    fd = Open(FIFO2_PATH, O_WRONLY);
     Write(fd, input_pid_str, strlen(input_pid_str) + 1);
     Close(fd);
-
-    // START OF NCURSES---------------------------------------
 
     // The max value that the force applied to the drone
     // for each axis is read.
@@ -263,22 +270,21 @@ int main(int argc, char *argv[]) {
     float force_step = get_param("input", "force_step");
     struct pos drone_current_pos;
 
-    /// initializing share memory and semaphores
-    // initialize semaphor
+    /// Initializing share memory and semaphores
+    // Initialize semaphors pointers
     sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_position =
         Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_velocity =
         Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    // initialized to 0 until shared memory is instantiated
 
-    // create shared memory object
+    // Create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
-    // truncate size of shared memory
+    // Truncate size of shared memory
     Ftruncate(shm, MAX_SHM_SIZE);
 
-    // map pointer
+    // Map pointer to shared memory area
     void *shm_ptr =
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
@@ -289,7 +295,7 @@ int main(int argc, char *argv[]) {
     // Disable echo of pressed characters in order to not have
     // the keys pressed to make the drone move appear on the screen
     noecho();
-    // Hide the cursor in order to net see the carret while it's Displaying
+    // Hide the cursor in order to net see the carret while it's displaying
     // the interface
     curs_set(0);
     // Enable the colors for ncurses
@@ -331,7 +337,7 @@ int main(int argc, char *argv[]) {
     // non_blocking_getch()
     timeout(100);
     while (1) {
-        // updating values to show in the interface. First the position
+        // Updating values to show in the interface. First the position
         // is updated
         Sem_wait(sem_position);
         sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
@@ -345,7 +351,7 @@ int main(int argc, char *argv[]) {
                &drone_current_velocity.y_component);
         Sem_post(sem_velocity);
 
-        // updating constants at runtime when the reading_rate_reductor goes to
+        // Updating constants at runtime when the reading_rate_reductor goes to
         // 0
         if (!reading_rate_reductor--) {
             reading_rate_reductor = get_param("input", "reading_rate_reductor");
@@ -353,10 +359,11 @@ int main(int argc, char *argv[]) {
             max_force = get_param("input", "max_force");
         }
 
+        // Getting user input if present
         input = getch();
 
         // Calculate the currently acting force on the drone by sending the
-        // currently pressed key
+        // currently pressed key to the update_force function
         update_force(&drone_current_force, input, force_step, shm_ptr,
                      sem_force, max_force);
 
@@ -398,30 +405,40 @@ int main(int argc, char *argv[]) {
         begin_format_input(input, tl_win, tc_win, tr_win, cl_win, cc_win,
                            cr_win, bl_win, bc_win, br_win);
 
+        /// Creating the ascii arts
+        // Up-left arrow
         mvwprintw(tl_win, 1, 3, "_");
         mvwprintw(tl_win, 2, 2, "'\\");
 
+        // Up arrow
         mvwprintw(tc_win, 1, 3, "A");
         mvwprintw(tc_win, 2, 3, "|");
 
+        // Up-right arrow
         mvwprintw(tr_win, 1, 3, "_");
         mvwprintw(tr_win, 2, 3, "/'");
 
+        // Left arrow
         mvwprintw(cl_win, 2, 2, "<");
         mvwprintw(cl_win, 2, 3, "-");
 
+        // Right arrow
         mvwprintw(cr_win, 2, 3, "-");
         mvwprintw(cr_win, 2, 4, ">");
 
+        // Down-left arrow
         mvwprintw(bl_win, 2, 2, "|/");
         mvwprintw(bl_win, 3, 2, "'-");
 
+        // Down arrow
         mvwprintw(bc_win, 2, 3, "|");
         mvwprintw(bc_win, 3, 3, "V");
 
+        // Down-right arrow
         mvwprintw(br_win, 2, 3, "\\|");
         mvwprintw(br_win, 3, 3, "-'");
 
+        // Break symbol
         mvwprintw(cc_win, 2, 3, "X");
 
         // Disable the color for the next iteration
@@ -444,7 +461,7 @@ int main(int argc, char *argv[]) {
 
         /// Right split
 
-        // Displaying the current position fo the drone with nice formatting
+        // Displaying the current position of the drone with nice formatting
         mvwprintw(right_split, LINES / 10 + 2, COLS / 10, "position {");
         mvwprintw(right_split, LINES / 10 + 3, COLS / 10, "\tx: %f",
                   drone_current_pos.x);
@@ -461,7 +478,7 @@ int main(int argc, char *argv[]) {
         mvwprintw(right_split, LINES / 10 + 10, COLS / 10, "}");
 
         // Displaying the current force beeing applied on the drone only by the
-        // user. So no border effect are taken into consideration while
+        // user. So no border effects are taken into consideration while
         // displaying these values.
         mvwprintw(right_split, LINES / 10 + 12, COLS / 10, "force {");
         mvwprintw(right_split, LINES / 10 + 13, COLS / 10, "\tx: %f",
@@ -484,17 +501,20 @@ int main(int argc, char *argv[]) {
         wrefresh(br_win);
     }
 
-    // Closing ncurses
-    endwin();
-
     // Cleaning up
+    // Unlinking the shared memory area
     shm_unlink(SHMOBJ_PATH);
+    // Closing the semaphors
     Sem_close(sem_force);
     Sem_close(sem_velocity);
     Sem_close(sem_position);
+    // Unlinking the semaphors files
     Sem_unlink(SEM_PATH_POSITION);
     Sem_unlink(SEM_PATH_FORCE);
     Sem_unlink(SEM_PATH_VELOCITY);
+    // Unmapping the shared memory pointer
     munmap(shm_ptr, MAX_SHM_SIZE);
+    // Closing ncurses
+    endwin();
     return 0;
 }

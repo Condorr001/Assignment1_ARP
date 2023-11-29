@@ -20,6 +20,7 @@
 // WD pid
 pid_t WD_pid;
 
+// Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
@@ -27,6 +28,7 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     }
 }
 
+// Create the outer border of the window
 WINDOW *create_map_win(int height, int width, int starty, int startx) {
     WINDOW *local_win;
 
@@ -34,16 +36,12 @@ WINDOW *create_map_win(int height, int width, int starty, int startx) {
     box(local_win, 0, 0); /* 0, 0 gives default characters
                            * for the vertical and horizontal
                            * lines			*/
-    // wrefresh(local_win);  /* Show that box 		*/
-
     return local_win;
 }
 
+// Destroy the map window. Useful to refresh the window once the terminal is
+// resized
 void destroy_map_win(WINDOW *local_win) {
-    /* box(local_win, ' ', ' '); : This won't produce the desired
-     * result of erasing the window. It will leave it's four corners
-     * and so an ugly remnant of window.
-     */
     wborder(local_win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
     /* The parameters taken are
      * 1. win: the window on which to operate
@@ -61,80 +59,88 @@ void destroy_map_win(WINDOW *local_win) {
 }
 
 int main(int argc, char *argv[]) {
-    // signal setup
+    // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
 
+    // Setting the signal handler
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
-    // The restart flag is used to restart all those syscalls that can get
+    // Setting flags
+    // The SA_RESTART flag is used to restart all those syscalls that can get
     // interrupted by signals
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
+    // Enabling the handler with the specified flags
     Sigaction(SIGUSR1, &sa, NULL);
 
-    // named pipe (fifo) to send the pid to the WD
+    // Named pipe (fifo) to send the pid to the WD
     int fd;
-    char *fifo_one = "/tmp/fifo";
-    Mkfifo(fifo_one, 0666);
+    Mkfifo(FIFO1_PATH, 0666);
 
+    // Getting the map pid
     int map_pid = getpid();
     char map_pids_str[20];
     // in this way both the pid of the map process and
     // the pid of the konsole that is running the map
-    // process is passed
+    // process is passed. getppid returns the father of the map process which is
+    // the konsole process
     sprintf(map_pids_str, "%d|%d", map_pid, getppid());
 
-    fd = Open(fifo_one, O_WRONLY);
+    // Writing to the fifo the previously formatted string
+    fd = Open(FIFO1_PATH, O_WRONLY);
     Write(fd, map_pids_str, strlen(map_pids_str) + 1);
     Close(fd);
 
     // Setting up the struct in which to store the position of the drone
     // in order to calculate the current position on the screen of the drone
-    struct pos drone1_pos;
+    struct pos drone_pos;
 
-    // initialize semaphor
+    // Initialize semaphors pointers
     sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_position =
         Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_velocity =
         Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
-    // create shared memory object
+    // Create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
-    // truncate size of shared memory
+    // Truncate size of shared memory
     Ftruncate(shm, MAX_SHM_SIZE);
 
-    // map pointer
+    // Map pointer to shared memory area
     void *shm_ptr =
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
-    // setting up ncurses
+    // Setting up ncurses
     initscr();
-    // disabling line buffering
+    // Disabling line buffering
     cbreak();
-    // hide the cursor in order to not see the white carret on the screen
+    // Hide the cursor in order to not see the white carret on the screen
     curs_set(0);
-    // TODO setting up the menu
-    mvprintw(0, 0, "menu");
-    // Display the menu text
-    refresh();
-    // displaying the first intance of the window
+    // Displaying the first intance of the window
     WINDOW *map_window =
         create_map_win(getmaxy(stdscr) - 2, getmaxx(stdscr), 1, 0);
 
-    // setting up structures needed for terminal resizing
+    // Setting up structures needed for terminal resizing
     while (1) {
-        // Updating the drone position by reading from the shared memory
+        // Updating the drone position by reading from the shared memory, and
+        // taking the semaphors
         Sem_wait(sem_position);
-        sscanf(shm_ptr, "%f|%f", &drone1_pos.x, &drone1_pos.y);
+        sscanf(shm_ptr, "%f|%f", &drone_pos.x, &drone_pos.y);
         Sem_post(sem_position);
 
+        // Displaying the title of the window.
+        mvprintw(0, 0, "MAP DISPLAY");
+        // Display the menu text
+        refresh();
+
         // Deleting the old window that is encapsulating the map in order to
-        // create the animation
+        // create the animation, and to allow the resizing of the window in case
+        // of terminal resize
         delwin(map_window);
-        // Redrawing the window. This is usefull if the screen is resized
+        // Redrawing the window. This is useful if the screen is resized
         map_window = create_map_win(LINES - 1, COLS, 1, 0);
         // In order to correctly handle the drone position calculation all
         // the simulations are done in a 500x500 square. Then the position of
@@ -150,9 +156,9 @@ int main(int argc, char *argv[]) {
         // from 1. With this we mean that if we have an array of dimension 3.
         // The highest index of an element in the arry will be 2, not 3. This
         // explains why -3 instead of -2.
-        int x = round(1 + drone1_pos.x * (getmaxx(map_window) - 3) /
+        int x = round(1 + drone_pos.x * (getmaxx(map_window) - 3) /
                               SIMULATION_WIDTH);
-        int y = round(1 + drone1_pos.y * (getmaxy(map_window) - 3) /
+        int y = round(1 + drone_pos.y * (getmaxy(map_window) - 3) /
                               SIMULATION_HEIGHT);
 
         // The drone is now displayed on the screen
@@ -165,14 +171,18 @@ int main(int argc, char *argv[]) {
         usleep(3000);
     }
 
-    // Clean up
+    /// Clean up
+    // Unlinking the shared memory area
     shm_unlink(SHMOBJ_PATH);
+    // Closing the semaphors
     Sem_close(sem_force);
     Sem_close(sem_velocity);
     Sem_close(sem_position);
+    // Unlinking the semaphors files
     Sem_unlink(SEM_PATH_POSITION);
     Sem_unlink(SEM_PATH_FORCE);
     Sem_unlink(SEM_PATH_VELOCITY);
+    // Unmapping the shared memory pointer
     munmap(shm_ptr, MAX_SHM_SIZE);
     // Closing ncurses
     endwin();

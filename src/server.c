@@ -15,75 +15,76 @@
 // WD pid
 pid_t WD_pid;
 
-//signal handler to receive the signal from WD and reply with another signal
+// Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
-        //get the WD pid since its the sender of the signal
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
     }
 }
 
 int main(int argc, char *argv[]) {
-    // signal setup
+    // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
 
+    // Setting the signal handler
     sa.sa_sigaction = signal_handler;
     sigemptyset(&sa.sa_mask);
-    // SA_RESTART has been used to restart all those syscalls that can get
+    // Setting flags
+    // The SA_RESTART flag is used to restart all those syscalls that can get
     // interrupted by signals
     sa.sa_flags = SA_SIGINFO | SA_RESTART;
 
-    //linking the signal handler to the signal
+    // Enabling the handler with the specified flags
     Sigaction(SIGUSR1, &sa, NULL);
 
-    //forking so that the father can behave as the server, while the child can spawn the map
+    // Forking so that the father can behave as the server, while the child can
+    // spawn the Map
     int pid = Fork();
 
     if (pid) {
         // Father process
-        // initialize semaphores for each drone information
+        // Initialize semaphores for each drone information
         sem_t *sem_force =
             Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
         sem_t *sem_position =
             Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
         sem_t *sem_velocity =
             Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
-        // initialized to 0 until shared memory is instantiated
+
+        // Setting the semaphores value to 1
         Sem_init(sem_force, 1, 1);
         Sem_init(sem_position, 1, 1);
         Sem_init(sem_velocity, 1, 1);
 
-        // create shared memory object
+        // Create shared memory object
         int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
-        // truncate size of shared memory
+        // Truncate size of shared memory
         Ftruncate(shm, MAX_SHM_SIZE);
 
-        // map pointer
+        // Map pointer to shared memory area
         void *shm_ptr = Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE,
                              MAP_SHARED, shm, 0);
         memset(shm_ptr, 0, MAX_SHM_SIZE);
 
-        //structs for each drone information
+        // Structs for each drone information
         struct pos drone_current_pos;
         struct velocity drone_current_velocity;
         struct force drone_current_force;
 
-        // logfile
-        char filename_string[80];
-        sprintf(filename_string, "log/log.log");
+        // Declaring the logfile pointer
         FILE *F0;
 
-        // every two seconds write in the logfile the state of the drone
         while (1) {
-            //taking the semaphores so other processes cannot access them
+            // Taking the semaphores to write into the shared memory areas
             Sem_wait(sem_force);
             Sem_wait(sem_velocity);
             Sem_wait(sem_position);
 
-            //saving drone information (position, velocity and force) from shared memory
+            // Saving drone information (position, velocity and force) from
+            // shared memory
             sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
                    &drone_current_pos.y);
             sscanf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
@@ -93,11 +94,11 @@ int main(int argc, char *argv[]) {
                    &drone_current_force.x_component,
                    &drone_current_force.y_component);
 
-            // write all the info in the logfile
-            F0 = Fopen(filename_string, "a");
-            //locking the logfile since also the WD can write into it
+            // Write all the info in the logfile
+            F0 = Fopen(LOGFILE_PATH, "a");
+            // Locking the logfile since also the WD can write into it
             Flock(fileno(F0), LOCK_EX);
-            //printing the drone info in the logfile
+            // Printing the drone info in the logfile
             fprintf(
                 F0,
                 "[INFO] - The x-y position of the drone is: %f %f\n"
@@ -109,39 +110,43 @@ int main(int argc, char *argv[]) {
                 drone_current_force.x_component,
                 drone_current_force.y_component);
 
-            //unlocking the file so that the WD can access it again
+            // Unlocking the file so that the WD can access it again
             Flock(fileno(F0), LOCK_UN);
             fclose(F0);
 
-            //releasing the semaphores
+            // Releasing the semaphores
             Sem_post(sem_position);
             Sem_post(sem_velocity);
             Sem_post(sem_force);
 
-            //sleep 2 seconds so that the server write in the logfile every two seconds
+            // Sleep 2 seconds so that the server write in the logfile every two
+            // seconds
             sleep(2);
         }
 
-        // clean up
-
-        //unlink the shared memory
+        /// Clean up
+        // Unlinking the shared memory area
         shm_unlink(SHMOBJ_PATH);
-        //close the semaphores
+        // Closing the semaphors
         Sem_close(sem_velocity);
         Sem_close(sem_force);
         Sem_close(sem_position);
-        //unlink the semaphores
+        // Unlinking the semaphors files
         Sem_unlink(SEM_PATH_FORCE);
         Sem_unlink(SEM_PATH_POSITION);
         Sem_unlink(SEM_PATH_VELOCITY);
-        //unmap the shared memory
+        // Unmapping the shared memory pointer
         munmap(shm_ptr, MAX_SHM_SIZE);
-
-        return 0;
+        return EXIT_SUCCESS;
 
     } else {
-        // passing the required arguments to the map process and spawn it
+        // Passing the required arguments to the map process and spawn it
         char *args[] = {"konsole", "-e", "./map", NULL};
         Execvp("konsole", args);
+
+        // In case we arrive here there is was an error
+        return EXIT_FAILURE;
     }
+
+    return EXIT_SUCCESS;
 }

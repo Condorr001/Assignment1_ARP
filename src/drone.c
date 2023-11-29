@@ -17,6 +17,7 @@
 // WD pid
 pid_t WD_pid;
 
+// Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
@@ -24,20 +25,21 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     }
 }
 
+// This function returns the border effect given the general
+// function given in the docs folder of the project. All the parameters can be
+// modified from the configuration file.
 float repulsive_force(float distance, float function_scale,
                       float area_of_effect) {
-    // this function returns the border effect given the general
-    // function given in the docs folder of the project
     return function_scale * (area_of_effect - distance) /
            (distance / function_scale);
 }
 
 int main(int argc, char *argv[]) {
-    // signal setup
+    // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
 
-    // Assigning the signal handler
+    // Setting the signal handler
     sa.sa_sigaction = signal_handler;
     // Resetting the mask
     sigemptyset(&sa.sa_mask);
@@ -62,7 +64,8 @@ int main(int argc, char *argv[]) {
 
     // Read the parameters for the border effect
     // Function scale determines the slope of the function while
-    // area of effect for how many meters will the border repel the object
+    // area of effect determines for how many meters will the border repel the
+    // object
     float function_scale = get_param("drone", "function_scale");
     float area_of_effect = get_param("drone", "area_of_effect");
 
@@ -92,21 +95,20 @@ int main(int argc, char *argv[]) {
     // read from the paramaters file
     int reading_rate_reductor = get_param("drone", "reading_rate_reductor");
 
-    // initialize semaphor
+    // Initialize semaphors
     sem_t *sem_position =
         Sem_open(SEM_PATH_POSITION, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_force = Sem_open(SEM_PATH_FORCE, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t *sem_velocity =
         Sem_open(SEM_PATH_VELOCITY, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    // initialized to 0 until shared memory is instantiated
 
-    // create shared memory object
+    // Create shared memory object
     int shm = Shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
 
-    // truncate size of shared memory
+    // Truncate size of shared memory
     Ftruncate(shm, MAX_SHM_SIZE);
 
-    // map pointer
+    // Map pointer to shared memory area
     void *shm_ptr =
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
@@ -131,12 +133,12 @@ int main(int argc, char *argv[]) {
                &drone_force.x_component, &drone_force.y_component);
         Sem_post(sem_force);
 
-        // Calculating repulsive force from sides
-        // note that in the docs the image of the function is provided and it
+        // Calculating repulsive force from the sides.
+        // Note that in the docs the image of the function is provided and it
         // shows that only after 'area_of_effect' in the x axis it will start to
         // work. This explains the constraint in the if. So if xt_1 is less than
         // 'area_of_effect' distance from the any wall in the x axis it will be
-        // affeccted by the force
+        // affected by the force
         if (xt_1 < area_of_effect) {
             walls.x_component =
                 repulsive_force(xt_1, function_scale, area_of_effect);
@@ -184,8 +186,9 @@ int main(int argc, char *argv[]) {
         yt_1 = drone_current_position.y;
 
         // The calculated position is written in shared memory in order to allow
-        // the input process to correctly display it in the ncurses interface.
-        // To do that firstly the semaphore needs to be taken
+        // the input process to correctly display it in the ncurses interface,
+        // and the map to show the drone on screen. To do that firstly the
+        // semaphore needs to be taken
         Sem_wait(sem_position);
         sprintf(shm_ptr + SHM_OFFSET_POSITION, "%.5f|%.5f",
                 drone_current_position.x, drone_current_position.y);
@@ -208,13 +211,17 @@ int main(int argc, char *argv[]) {
     }
 
     // Cleaning up
+    // Unlinking the shared memory area
     shm_unlink(SHMOBJ_PATH);
+    // Closing the semaphors
     Sem_close(sem_position);
     Sem_close(sem_force);
     Sem_close(sem_velocity);
+    // Unlinking the semaphors files
     Sem_unlink(SEM_PATH_FORCE);
     Sem_unlink(SEM_PATH_POSITION);
     Sem_unlink(SEM_PATH_VELOCITY);
+    // Unmapping the shared memory pointer
     munmap(shm_ptr, MAX_SHM_SIZE);
     return 0;
 }
