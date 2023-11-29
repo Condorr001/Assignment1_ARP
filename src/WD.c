@@ -1,5 +1,4 @@
 #include "constants.h"
-#include "utils/utils.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
 #include <signal.h>
@@ -35,6 +34,10 @@ int fault_pid;
 
 // Signal handler for signals received from the monitored processes
 void signal_handler(int signo, siginfo_t *info, void *context) {
+    // Specifying that context and info are unused
+    (void)(info);
+    (void)(context);
+
     if (signo == SIGUSR2)
         count++;
 }

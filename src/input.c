@@ -20,6 +20,9 @@ pid_t WD_pid;
 
 // Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
+    // Specifying that context is unused
+    (void)(context);
+
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
@@ -162,7 +165,7 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
                   sem_t *sem_force, float max_force) {
     // First we need to read the previous value of the force
     Sem_wait(sem_force);
-    sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+    sscanf((char *)shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
            &to_update->x_component, &to_update->y_component);
     Sem_post(sem_force);
     // Note that the axis are positioned in this way
@@ -226,6 +229,9 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
 }
 
 int main(int argc, char *argv[]) {
+    // Specifying that argc and argv are unused variables
+    (void)(argc);
+    (void)(argv);
 
     // Signal declaration
     struct sigaction sa;
@@ -262,7 +268,7 @@ int main(int argc, char *argv[]) {
     // Initializing data structs
     // The current force as the current velocity at the
     // beginning of the simulation are 0
-    struct force drone_current_force = {0, 0};
+    struct force drone_current_force       = {0, 0};
     struct velocity drone_current_velocity = {0, 0};
 
     // The force_step, meaning how much force should be added
@@ -310,12 +316,12 @@ int main(int argc, char *argv[]) {
     init_pair(1, COLOR_GREEN, -1);
 
     // The windows of the matrix visible in the left split are now initialized
-    WINDOW *left_split = input_display_setup(LINES, COLS / 2 - 1, 0, 0);
+    WINDOW *left_split  = input_display_setup(LINES, COLS / 2 - 1, 0, 0);
     WINDOW *right_split = input_display_setup(LINES, COLS / 2 - 1, COLS / 2, 0);
-    WINDOW *tl_win = input_display_setup(5, 7, LINES / 3, COLS / 6);
-    WINDOW *tc_win = input_display_setup(5, 7, LINES / 3, COLS / 6 + 6);
-    WINDOW *tr_win = input_display_setup(5, 7, LINES / 3, COLS / 6 + 12);
-    WINDOW *cl_win = input_display_setup(5, 7, LINES / 3 + 4, COLS / 6);
+    WINDOW *tl_win      = input_display_setup(5, 7, LINES / 3, COLS / 6);
+    WINDOW *tc_win      = input_display_setup(5, 7, LINES / 3, COLS / 6 + 6);
+    WINDOW *tr_win      = input_display_setup(5, 7, LINES / 3, COLS / 6 + 12);
+    WINDOW *cl_win      = input_display_setup(5, 7, LINES / 3 + 4, COLS / 6);
     WINDOW *cc_win = input_display_setup(5, 7, LINES / 3 + 4, COLS / 6 + 6);
     WINDOW *cr_win = input_display_setup(5, 7, LINES / 3 + 4, COLS / 6 + 12);
     WINDOW *bl_win = input_display_setup(5, 7, LINES / 3 + 8, COLS / 6);
@@ -340,13 +346,13 @@ int main(int argc, char *argv[]) {
         // Updating values to show in the interface. First the position
         // is updated
         Sem_wait(sem_position);
-        sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
-               &drone_current_pos.y);
+        sscanf((char *)shm_ptr + SHM_OFFSET_POSITION, "%f|%f",
+               &drone_current_pos.x, &drone_current_pos.y);
         Sem_post(sem_position);
 
         // Now also the velocity gets updated
         Sem_wait(sem_velocity);
-        sscanf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
+        sscanf((char *)shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
                &drone_current_velocity.x_component,
                &drone_current_velocity.y_component);
         Sem_post(sem_velocity);
@@ -355,8 +361,8 @@ int main(int argc, char *argv[]) {
         // 0
         if (!reading_rate_reductor--) {
             reading_rate_reductor = get_param("input", "reading_rate_reductor");
-            force_step = get_param("input", "force_step");
-            max_force = get_param("input", "max_force");
+            force_step            = get_param("input", "force_step");
+            max_force             = get_param("input", "max_force");
         }
 
         // Getting user input if present
@@ -369,7 +375,7 @@ int main(int argc, char *argv[]) {
 
         // Write to the shared memory the current force value
         Sem_wait(sem_force);
-        sprintf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+        sprintf((char *)shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                 drone_current_force.x_component,
                 drone_current_force.y_component);
         Sem_post(sem_force);
@@ -382,7 +388,7 @@ int main(int argc, char *argv[]) {
         destroy_input_display(right_split);
 
         // Setting the initial values for the splits
-        left_split = input_display_setup(LINES, COLS / 2 - 1, 0, 0);
+        left_split  = input_display_setup(LINES, COLS / 2 - 1, 0, 0);
         right_split = input_display_setup(LINES, COLS / 2 - 1, 0, COLS / 2);
 
         // Setting the initial values for the cells of the matrix containing

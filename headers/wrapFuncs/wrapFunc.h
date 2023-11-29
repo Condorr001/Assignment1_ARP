@@ -3,16 +3,16 @@
 #include <semaphore.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <sys/select.h>
 #include <sys/file.h>
+#include <sys/select.h>
 #include <sys/signal.h>
 
 int Wait(int *wstatus);
 int Waitpid(pid_t pid, int *wstatus, int options);
-int Execvp(const char* file, char** args);
+int Execvp(const char *file, char **args);
 int Read(int fd, void *buf, size_t nbytes);
 int Write(int fd, void *buf, size_t nbytes);
-int Fork();
+int Fork(void);
 int Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
            struct timeval *timeout);
 int Open(const char *file, int oflag);
@@ -27,10 +27,11 @@ int Sem_wait(sem_t *sem);
 int Sem_post(sem_t *sem);
 int Sem_close(sem_t *sem);
 int Sem_unlink(const char *name);
-FILE* Fopen(const char* pathname, const char* mode);
+FILE *Fopen(const char *pathname, const char *mode);
 int Flock(int fd, int operation);
 void Kill(int pid, int signal);
 int Kill2(int pid, int signal);
 void Mkfifo(const char *fifo_path, int permit);
-void Sigaction(int signum, const struct sigaction* act, struct sigaction* oldact);
+void Sigaction(int signum, const struct sigaction *act,
+               struct sigaction *oldact);
 #endif // !WRAPFUNC

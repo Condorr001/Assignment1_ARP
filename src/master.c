@@ -15,6 +15,10 @@ static void spawn(char **arg_list) {
 }
 
 int main(int argc, char *argv[]) {
+    // Specifying that argc and argv are unused variables
+    (void)(argc);
+    (void)(argv);
+
     // Define the number of programs to spawn
     int num_children = NUM_PROCESSES;
 
@@ -79,7 +83,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_children; i++) {
         int ret = Wait(&res);
         // Getting the exit status
-        int status;
+        int status = 0;
         WEXITSTATUS(status);
         printf("Process %d terminated with code: %d\n", ret, status);
     }

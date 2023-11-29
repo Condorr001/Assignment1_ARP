@@ -1,6 +1,5 @@
 #include "constants.h"
 #include "dataStructs.h"
-#include "utils/utils.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
 #include <signal.h>
@@ -17,6 +16,9 @@ pid_t WD_pid;
 
 // Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
+    // Specifying that context is unused
+    (void)(context);
+
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
@@ -24,6 +26,10 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
 }
 
 int main(int argc, char *argv[]) {
+    // Specifying that argc and argv are unused variables
+    (void)(argc);
+    (void)(argv);
+
     // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -85,12 +91,12 @@ int main(int argc, char *argv[]) {
 
             // Saving drone information (position, velocity and force) from
             // shared memory
-            sscanf(shm_ptr + SHM_OFFSET_POSITION, "%f|%f", &drone_current_pos.x,
-                   &drone_current_pos.y);
-            sscanf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
+            sscanf((char *)shm_ptr + SHM_OFFSET_POSITION, "%f|%f",
+                   &drone_current_pos.x, &drone_current_pos.y);
+            sscanf((char *)shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
                    &drone_current_velocity.x_component,
                    &drone_current_velocity.y_component);
-            sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+            sscanf((char *)shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                    &drone_current_force.x_component,
                    &drone_current_force.y_component);
 

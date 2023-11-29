@@ -43,7 +43,7 @@ int Execvp(const char *file, char **args) {
     return ret;
 }
 
-int Fork() {
+int Fork(void) {
     int ret = fork();
     if (ret < 0) {
         perror("Error on forking");

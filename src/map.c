@@ -22,6 +22,9 @@ pid_t WD_pid;
 
 // Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
+    // Specifying that context is unused
+    (void)(context);
+
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
@@ -59,6 +62,10 @@ void destroy_map_win(WINDOW *local_win) {
 }
 
 int main(int argc, char *argv[]) {
+    // Specifying that argc and argv are unused variables
+    (void)(argc);
+    (void)(argv);
+
     // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));

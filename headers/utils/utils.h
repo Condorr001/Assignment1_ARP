@@ -1,2 +1,2 @@
 #pragma once
-float get_param(char* process, char* param);
+float get_param(char *process, char *param);

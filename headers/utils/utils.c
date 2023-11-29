@@ -78,7 +78,7 @@ int read_parameter_file(struct kv *params) {
         // is resetted
         if (read == -1 || strlen(line) == 0) {
             params[process_index++] = aux;
-            values_index = 0;
+            values_index            = 0;
             memset(aux.process, 0, sizeof(aux.process));
             memset(aux.values, 0, sizeof(aux.values));
             memset(aux.keys, 0, sizeof(aux.keys));
@@ -112,7 +112,7 @@ int read_parameter_file(struct kv *params) {
             token = strtok_r(NULL, "=", &saveptr);
             // The value token is now converted into float and saved
             // in the values array
-            for (int i = 0; i < strlen(token); i++) {
+            for (unsigned int i = 0; i < strlen(token); i++) {
                 if (!(isdigit(token[i]) || token[i] == '.')) {
                     if (line)
                         free(line);

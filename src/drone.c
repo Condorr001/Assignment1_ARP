@@ -2,7 +2,6 @@
 #include "dataStructs.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
-#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +18,9 @@ pid_t WD_pid;
 
 // Once the SIGUSR1 is received send back the SIGUSR2 signal
 void signal_handler(int signo, siginfo_t *info, void *context) {
+    // Specifying thhat context is not used
+    (void)(context);
+
     if (signo == SIGUSR1) {
         WD_pid = info->si_pid;
         Kill(WD_pid, SIGUSR2);
@@ -35,6 +37,10 @@ float repulsive_force(float distance, float function_scale,
 }
 
 int main(int argc, char *argv[]) {
+    // Specifying that argc and argv are unused variables
+    (void)(argc);
+    (void)(argv);
+
     // Signal declaration
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -56,11 +62,11 @@ int main(int argc, char *argv[]) {
     struct force drone_force;
     // walls is the force acting on the drone due to the close distance to
     // the walls
-    struct force walls;
+    struct force walls = {0, 0};
     // drone_current_position stores the current position of the drone
-    struct pos drone_current_position;
+    struct pos drone_current_position = {0, 0};
     // drone_current_velocity stores the curretn velocity of the drone
-    struct velocity drone_current_velocity;
+    struct velocity drone_current_velocity = {0, 0};
 
     // Read the parameters for the border effect
     // Function scale determines the slope of the function while
@@ -86,8 +92,8 @@ int main(int argc, char *argv[]) {
     drone_current_position.x = xt_1 = xt_2 = get_param("drone", "init_pos_x");
     drone_current_position.y = yt_1 = yt_2 = get_param("drone", "init_pos_y");
     // The force and the velocity applied to the drone at t = 0 is 0
-    drone_force.x_component = 0;
-    drone_force.y_component = 0;
+    drone_force.x_component            = 0;
+    drone_force.y_component            = 0;
     drone_current_velocity.x_component = 0;
     drone_current_velocity.y_component = 0;
 
@@ -120,16 +126,16 @@ int main(int argc, char *argv[]) {
             // itself.
             reading_rate_reductor = get_param("drone", "reading_rate_reductor");
             // Then all the other phisic parameters are read
-            M = get_param("drone", "mass");
-            T = get_param("drone", "time_step");
-            K = get_param("drone", "viscous_coefficient");
+            M              = get_param("drone", "mass");
+            T              = get_param("drone", "time_step");
+            K              = get_param("drone", "viscous_coefficient");
             function_scale = get_param("drone", "function_scale");
             area_of_effect = get_param("drone", "area_of_effect");
         }
         // The semaphore is taken in order to read the force components as
         // given by the user in the input process
         Sem_wait(sem_force);
-        sscanf(shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
+        sscanf((char *)shm_ptr + SHM_OFFSET_FORCE_COMPONENTS, "%f|%f",
                &drone_force.x_component, &drone_force.y_component);
         Sem_post(sem_force);
 
@@ -190,14 +196,14 @@ int main(int argc, char *argv[]) {
         // and the map to show the drone on screen. To do that firstly the
         // semaphore needs to be taken
         Sem_wait(sem_position);
-        sprintf(shm_ptr + SHM_OFFSET_POSITION, "%.5f|%.5f",
+        sprintf((char *)shm_ptr + SHM_OFFSET_POSITION, "%.5f|%.5f",
                 drone_current_position.x, drone_current_position.y);
         Sem_post(sem_position);
         // The calculated velocity is written in the shared memory in order to
         // allow the input process to correctly display it in the curses
         // interface
         Sem_wait(sem_velocity);
-        sprintf(shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
+        sprintf((char *)shm_ptr + SHM_OFFSET_VELOCITY_COMPONENTS, "%f|%f",
                 drone_current_velocity.x_component,
                 drone_current_velocity.y_component);
         Sem_post(sem_velocity);
