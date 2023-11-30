@@ -152,7 +152,10 @@ int main(int argc, char *argv[]) {
         } else if (xt_1 > SIMULATION_WIDTH - area_of_effect) {
             walls.x_component = -repulsive_force(
                 SIMULATION_WIDTH - xt_1, function_scale, area_of_effect);
+        } else {
+            walls.x_component = 0;
         }
+
         if (yt_1 < area_of_effect) {
             walls.y_component =
                 repulsive_force(yt_1, function_scale, area_of_effect);
@@ -160,19 +163,42 @@ int main(int argc, char *argv[]) {
         } else if (yt_1 > SIMULATION_HEIGHT - area_of_effect) {
             walls.y_component = -repulsive_force(
                 SIMULATION_HEIGHT - yt_1, function_scale, area_of_effect);
+        } else {
+            walls.y_component = 0;
         }
 
         // Here the current position of the drone is calculated using
         // the provided formula. The x and y components are calculated
         // using the same formula
-        drone_current_position.x =
-            (walls.x_component + drone_force.x_component -
-             (M / (T * T)) * (xt_2 - 2 * xt_1) + (K / T) * xt_1) /
-            ((M / (T * T)) + K / T);
-        drone_current_position.y =
-            (walls.y_component + drone_force.y_component -
-             (M / (T * T)) * (yt_2 - 2 * yt_1) + (K / T) * yt_1) /
-            ((M / (T * T)) + K / T);
+
+        // The current velocity is calculated by using floats and there is the
+        // possibility that  when this get too small they don't reach 0, so a
+        // threshold under which the value is set to zero is set. This threshold
+        // has to came into play only when there is no repulsive force from the
+        // walls and no force is applied by the user, so when the drone is
+        // decelerating only by viscous coefficient. The same applies for
+        // the x and y components
+        if (drone_current_velocity.x_component < ZERO_THRESHOLD &&
+            drone_current_velocity.x_component > -ZERO_THRESHOLD &&
+            walls.x_component == 0 && drone_force.x_component == 0)
+            drone_current_position.x = xt_1;
+        else {
+            drone_current_position.x =
+                (walls.x_component + drone_force.x_component -
+                 (M / (T * T)) * (xt_2 - 2 * xt_1) + (K / T) * xt_1) /
+                ((M / (T * T)) + K / T);
+        }
+
+        if (drone_current_velocity.y_component < ZERO_THRESHOLD &&
+            drone_current_velocity.y_component > -ZERO_THRESHOLD &&
+            walls.y_component == 0 && drone_force.y_component == 0)
+            drone_current_position.y = yt_1;
+        else {
+            drone_current_position.y =
+                (walls.y_component + drone_force.y_component -
+                 (M / (T * T)) * (yt_2 - 2 * yt_1) + (K / T) * yt_1) /
+                ((M / (T * T)) + K / T);
+        }
 
         // The current velocity is calculated by dividing the
         // difference of position by the time step between the calculations

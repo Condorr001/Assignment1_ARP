@@ -142,22 +142,8 @@ float diag(float side) {
 }
 
 // Function to implement the decreasing of the force
-float slow_down(float force_value, float step) {
-    // If the force value is positive then we need to subtract
-    // the step from it. If after the subtraction the value is negative, then
-    // it is set to 0 because this is a breaking function and this means
-    // that the force is no longer present.
-    // The same goes for the negative value
-    if (force_value > 0) {
-        force_value -= step;
-        if (force_value < 0)
-            force_value = 0;
-    } else if (force_value < 0) {
-        force_value += step;
-        if (force_value > 0)
-            force_value = 0;
-    }
-    return force_value;
+float slow_down(void) {
+    return 0.f;
 }
 
 // Function to calculate the new force after the user has given another input
@@ -193,8 +179,8 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
         to_update->x_component -= step;
         break;
     case 's':
-        to_update->x_component = slow_down(to_update->x_component, step);
-        to_update->y_component = slow_down(to_update->y_component, step);
+        to_update->x_component = slow_down();
+        to_update->y_component = slow_down();
         break;
     case 'd':
         to_update->x_component += step;
@@ -211,8 +197,8 @@ void update_force(struct force *to_update, int input, float step, void *shm_ptr,
         to_update->y_component += diag(step);
         break;
     case ' ':
-        to_update->x_component = slow_down(to_update->x_component, step);
-        to_update->y_component = slow_down(to_update->y_component, step);
+        to_update->x_component = slow_down();
+        to_update->y_component = slow_down();
         break;
     }
 
