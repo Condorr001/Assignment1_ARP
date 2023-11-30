@@ -60,3 +60,14 @@ the not respondent process. If the process targeted by the sending of the signal
 has to respond with SIGUSR2. In case that this signal is not received, meaning
 that the process is frozen, then the watchdog will in the same way kill the
 unresponsive process.
+
+## Input
+```
++-+-+---+---+
+| q | w | e |
++---+---+---+
+| a | s | d |
++---+---+---+
+| z | x | c |
++-+-+---+---+
+```
