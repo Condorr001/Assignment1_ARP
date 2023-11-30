@@ -62,3 +62,12 @@ that the process is frozen, then the watchdog will in the same way kill the
 unresponsive process.
 
 ## Input
+```
++-+-+---+---+
+| q | w | e |
++---+---+---+
+| a | s | d |
++---+---+---+
+| z | x | c |
++-+-+---+---+
+```
