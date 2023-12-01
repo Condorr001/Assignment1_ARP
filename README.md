@@ -1,3 +1,20 @@
+# Table of contents
+- [Creators](#creators)
+- [ARP: Assignment 1](#arp--assignment-1)
+  * [How to run](#how-to-run)
+    + [Building dependencies](#building-dependencies)
+    + [Command to run the program](#command-to-run-the-program)
+  * [How does it work](#how-does-it-work)
+    + [Architecture](#architecture)
+    + [Active components](#active-components)
+      - [Server](#server)
+      - [Map](#map)
+      - [Drone](#drone)
+      - [Input](#input)
+      - [Watchdog](#watchdog)
+  * [Other components, directories and files](#other-components--directories-and-files)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 # Creators 
 Davide Tonelli - S6424332
@@ -103,7 +120,7 @@ The keys available for the user are:
 | z | x | c |
 +-+-+---+---+
 ```
-The eight external keys can be used to move the drone by adding a force in the respective direction (top, top-right, right and so on). On the other hand, the S key in used to instantly zero all the forces, in order to see the inertia on the drone.
+The eight external keys can be used to move the drone by adding a force in the respective direction (top, top-right, right and so on). On the other hand, the S key in used to instantly zero all the forces, in order to see the inertia on the drone. The space key dose the same thing as the s key.
 
 The primitives used by the input are:
 - Kill(): used to send a signal to the WD to tell that it's alive
@@ -121,20 +138,37 @@ that the process is frozen, the WD kills all the processes.
 
 ## Other components, directories and files
 The project is structured as follows:
-- main folder
-	- run.sh: script to run the project
-	- CMakeList.txt: cmake file
-- *src* folder
-	- all the active components
-	- master.c, which spawns the active components
-	- CMakeList.txt: cmake file
-- *headers* folder
-	- constants.h: file with all the constants used in the project
-	- dataStruct.h: file with all the data structures used in the project
-	- *wrapFuncs* folder: contains headers and .c file that implement all the syscall used in the project with errors checking included
-	- *utils* folder: contains headers and .c file for specific utility functions
-- *docs* folder: contains a few documents to better understand the project
-- *build* folder: destination folder of all the built file after running the script
-- *bin* folder:
-	- *log* folder: contains the logfile
-	- *conf* folder: contains the parameter file for the drone dynamics
+```
+.
+├── bin
+│   ├── conf
+│   │   └── drone_parameters.conf -------------> Contains the parameter file for the drone dynamics and setting parameters for the processes
+│   └── log -----------------------------------> Contains the logfile
+│       └── log.log
+├── build -------------------------------------> Destination folder of all the built file after running the run.sh script
+├── CMakeLists.txt ----------------------------> Main cmake file
+├── docs --------------------------------------> Contains a few documents to better understand the project
+│   ├── assignmentsv2.1.pdf
+│   ├── function.png
+│   └── Schema_assignment1_ARP.png
+├── headers
+│   ├── CMakeLists.txt
+│   ├── constants.h ---------------------------> Contains all the constants used in the project
+│   ├── dataStructs.h
+│   ├── utils ---------------------------------> Contains headers and .c file for utility functions related to the configuration file
+│   │   ├── utils.c
+│   │   └── utils.h
+│   └── wrapFuncs -----------------------------> Contains headers and .c file that implement all the syscall used in the project with errors checking included
+│       ├── wrapFunc.c
+│       └── wrapFunc.h
+├── README.md
+├── run.sh ------------------------------------> Script to run the project
+└── src ---------------------------------------> Contains all active components
+    ├── CMakeLists.txt
+    ├── drone.c
+    ├── input.c
+    ├── map.c
+    ├── master.c
+    ├── server.c
+    └── WD.c
+```
