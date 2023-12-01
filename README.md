@@ -12,7 +12,7 @@
       - [Drone](#drone)
       - [Input](#input)
       - [Watchdog](#watchdog)
-  * [Other components, directories and files](#other-components--directories-and-files)
+  * [Other components, directories and files](#other-components-directories-and-files)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
