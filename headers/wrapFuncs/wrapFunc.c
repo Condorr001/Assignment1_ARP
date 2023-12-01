@@ -1,4 +1,5 @@
 #include "wrapFuncs/wrapFunc.h"
+#include <curses.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stddef.h>
@@ -102,7 +103,7 @@ int Open(const char *file, int oflag) {
 int Pipe(int *pipedes) {
     int ret = pipe(pipedes);
     if (ret < 0) {
-        perror("Error on executing open");
+        perror("Error on executing pipe");
         fflush(stdout);
         getchar();
         exit(EXIT_FAILURE);
@@ -113,7 +114,7 @@ int Pipe(int *pipedes) {
 int Close(int fd) {
     int ret = close(fd);
     if (ret < 0) {
-        perror("Error on executing open");
+        perror("Error on executing close");
         fflush(stdout);
         getchar();
         exit(EXIT_FAILURE);
@@ -245,6 +246,7 @@ void Kill(int pid, int signal) {
     int ret = kill(pid, signal);
     if (ret < 0) {
         perror("Error on executing kill");
+        getchar();
         exit(EXIT_FAILURE);
     }
 }
@@ -260,6 +262,7 @@ void Mkfifo(const char *fifo_path, int permit) {
     if (access(fifo_path, F_OK) < 0) {
         if (mkfifo(fifo_path, permit) < 0) {
             perror("Error on executing mkfifo");
+            getchar();
             exit(EXIT_FAILURE);
         }
     }
@@ -270,6 +273,34 @@ void Sigaction(int signum, const struct sigaction *act,
     int ret = sigaction(signum, act, oldact);
     if (ret < 0) {
         perror("Error on executing sigaction");
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Fclose(FILE *stream) {
+    int ret = fclose(stream);
+    if (ret == EOF) {
+        perror("Error on executing fclose");
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Shm_unlink(const char *name) {
+    int ret = shm_unlink(name);
+    if (ret < 0) {
+        perror("Error on executing shm_unlink");
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+}
+
+void Munmap(void *addr, size_t len) {
+    int ret = munmap(addr, len);
+    if (ret < 0) {
+        perror("Error on executing munmap");
+        getchar();
         exit(EXIT_FAILURE);
     }
 }

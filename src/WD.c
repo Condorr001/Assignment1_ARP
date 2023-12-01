@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
             fprintf(F, "[INFO] - Wd sending signal to %d\n", p_pids[i]);
             // Unlocking the file so that the server can access it again
             Flock(fileno(F), LOCK_UN);
-            fclose(F);
+            Fclose(F);
 
             // This may seem strange but is required because signals may
             // interrupt sleep. Sleep when interrupted returns the amount of
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
                     fault_pid);
                 // Unlocking the file so that the server can access it again
                 Flock(fileno(F0), LOCK_UN);
-                fclose(F0);
+                Fclose(F0);
 
                 // Killing all processes, except Konsole's
                 for (int i = 0; i < NUM_PROCESSES; i++) {

@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/file.h>
+#include <sys/mman.h>
 #include <sys/select.h>
 #include <sys/signal.h>
 
@@ -34,4 +35,7 @@ int Kill2(int pid, int signal);
 void Mkfifo(const char *fifo_path, int permit);
 void Sigaction(int signum, const struct sigaction *act,
                struct sigaction *oldact);
+void Fclose(FILE *stream);
+void Shm_unlink(const char *name);
+void Munmap(void *addr, size_t len);
 #endif // !WRAPFUNC

@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
 
     /// Clean up
     // Unlinking the shared memory area
-    shm_unlink(SHMOBJ_PATH);
+    Shm_unlink(SHMOBJ_PATH);
     // Closing the semaphors
     Sem_close(sem_force);
     Sem_close(sem_velocity);
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
     Sem_unlink(SEM_PATH_FORCE);
     Sem_unlink(SEM_PATH_VELOCITY);
     // Unmapping the shared memory pointer
-    munmap(shm_ptr, MAX_SHM_SIZE);
+    Munmap(shm_ptr, MAX_SHM_SIZE);
     // Closing ncurses
     endwin();
     return EXIT_SUCCESS;

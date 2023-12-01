@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
 
     // Cleaning up
     // Unlinking the shared memory area
-    shm_unlink(SHMOBJ_PATH);
+    Shm_unlink(SHMOBJ_PATH);
     // Closing the semaphors
     Sem_close(sem_position);
     Sem_close(sem_force);
@@ -254,6 +254,6 @@ int main(int argc, char *argv[]) {
     Sem_unlink(SEM_PATH_POSITION);
     Sem_unlink(SEM_PATH_VELOCITY);
     // Unmapping the shared memory pointer
-    munmap(shm_ptr, MAX_SHM_SIZE);
+    Munmap(shm_ptr, MAX_SHM_SIZE);
     return 0;
 }

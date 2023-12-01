@@ -121,7 +121,7 @@ int read_parameter_file(struct kv *params) {
                             "[ERROR] - Parameter must be float at line %d in "
                             "config file\n",
                             line_counter);
-                    fclose(F);
+                    Fclose(F);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -134,7 +134,7 @@ int read_parameter_file(struct kv *params) {
     // Remove the lock from the file f
     Flock(fileno(f), LOCK_UN);
     // Close the file
-    fclose(f);
+    Fclose(f);
     // If line has still some memory allocated by getline free it
     if (line)
         free(line);
@@ -171,6 +171,6 @@ float get_param(char *process, char *param) {
             "errors or mispells in "
             "config file\n",
             param, process);
-    fclose(F);
+    Fclose(F);
     exit(EXIT_FAILURE);
 }
