@@ -116,3 +116,23 @@ The primitives used by the input are:
 The **watchdog** is resposible for checking the correct execution of all the other processes. For this purpose, the WD sends the SIGUSR1 signal to all the processes. Then, two checks are made. Firstly, it verifies that the processes are alive by checking if the *kill* syscall returns an error and immediately kills all the processes if this happens.
 Secondly, it verifies that the processes are not frozen by waiting for a SIGUSR2 reply by each process. In case that this signal is not received, meaning
 that the process is frozen, the WD kills all the processes.
+
+## Other components, directories and files
+The project is structured as follows:
+- main folder
+	- run.sh: script to run the project
+	- CMakeList.txt: cmake file
+- *src* folder
+	- all the active components
+	- master.c, which spawns the active components
+	- CMakeList.txt: cmake file
+- *headers* folder
+	- constants.h: file with all the constants used in the project
+	- dataStruct.h: file with all the data structures used in the project
+	- *wrapFuncs* folder: contains headers and .c file that implement all the syscall used in the project with errors checking included
+	- *utils* folder: contains headers and .c file for specific utility functions
+- *docs* folder: contains a few documents to better understand the project
+- *build* folder: destination folder of all the built file after running the script
+- *bin* folder:
+	- *log* folder: contains the logfile
+	- *conf* folder: contains the parameter file for the drone dynamics
