@@ -116,12 +116,13 @@ int read_parameter_file(struct kv *params) {
                 if (!(isdigit(token[i]) || token[i] == '.')) {
                     if (line)
                         free(line);
-                    FILE *F = Fopen(LOGFILE_PATH, "a");
-                    fprintf(F,
-                            "[ERROR] - Parameter must be float at line %d in "
+                    // Logging
+                    char logmsg[100];
+                    sprintf(logmsg,
+                            "Parameter must be float at line %d in "
                             "config file\n",
                             line_counter);
-                    Fclose(F);
+                    logging(LOG_ERROR, logmsg);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -165,12 +166,25 @@ float get_param(char *process, char *param) {
     // In case of error the process is killed, since the misconfiguration
     // or the parsing error of a parameter would cause irreparable damage
     // to the system
-    FILE *F = Fopen(LOGFILE_PATH, "a");
-    fprintf(F,
-            "[ERROR] - Parameter %s of process %s not found, check for syntax "
+
+    // Logging
+    char logmsg[300];
+    sprintf(logmsg,
+            "Parameter %s of process %s not found, check for syntax "
             "errors or mispells in "
             "config file\n",
             param, process);
-    Fclose(F);
+    logging(LOG_ERROR, logmsg);
     exit(EXIT_FAILURE);
+}
+
+void logging(char *type, char *message) {
+    FILE *F;
+    F = Fopen(LOGFILE_PATH, "a");
+    // Locking the logfile
+    Flock(fileno(F), LOCK_EX);
+    fprintf(F, "[%s] - %s\n", type, message);
+    // Unlocking the file so that the server can access it again
+    Flock(fileno(F), LOCK_UN);
+    Fclose(F);
 }

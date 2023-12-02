@@ -1,4 +1,5 @@
 #include "constants.h"
+#include "utils/utils.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
 #include <signal.h>
@@ -70,6 +71,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    // Auxiliary variable used to create the log message to insert into the
+    // logfile
+    char logmsg[100];
+
     // Getting the input pid through the named pipe
     // Initializing the named pipe
     int fd1;
@@ -121,14 +126,8 @@ int main(int argc, char *argv[]) {
             check = Kill2(p_pids[i], SIGUSR1);
 
             // Writing in the logfile which process the WD sent a signal to
-            FILE *F;
-            F = Fopen(LOGFILE_PATH, "a");
-            // Locking the logfile since also the server can write into it
-            Flock(fileno(F), LOCK_EX);
-            fprintf(F, "[INFO] - Wd sending signal to %d\n", p_pids[i]);
-            // Unlocking the file so that the server can access it again
-            Flock(fileno(F), LOCK_UN);
-            Fclose(F);
+            sprintf(logmsg, "WD sending signal to %d", p_pids[i]);
+            logging(LOG_INFO, logmsg);
 
             // This may seem strange but is required because signals may
             // interrupt sleep. Sleep when interrupted returns the amount of
@@ -147,20 +146,11 @@ int main(int argc, char *argv[]) {
                 // variable
                 fault_pid = p_pids[i];
 
-                // Opening the logfile
-                FILE *F0;
-                F0 = Fopen(LOGFILE_PATH, "a");
-                // Locking the logfile since also the server can write into it
-                Flock(fileno(F0), LOCK_EX);
-                // Writing in logfile the pid of the guilty process
-                fprintf(
-                    F0,
-                    "[WARN] - WD killed all processes because of process with "
-                    "pid %d\n",
-                    fault_pid);
-                // Unlocking the file so that the server can access it again
-                Flock(fileno(F0), LOCK_UN);
-                Fclose(F0);
+                sprintf(logmsg,
+                        "WD killed all processes because of process"
+                        " with pid %d",
+                        fault_pid);
+                logging(LOG_WARN, logmsg);
 
                 // Killing all processes, except Konsole's
                 for (int i = 0; i < NUM_PROCESSES; i++) {

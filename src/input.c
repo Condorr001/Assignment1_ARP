@@ -4,6 +4,7 @@
 #include "wrapFuncs/wrapFunc.h"
 #include <curses.h>
 #include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,9 +143,7 @@ float diag(float side) {
 }
 
 // Function to implement the decreasing of the force
-float slow_down(void) {
-    return 0.f;
-}
+float slow_down(void) { return 0.f; }
 
 // Function to calculate the new force after the user has given another input
 void update_force(struct force *to_update, int input, float step, void *shm_ptr,
@@ -318,13 +317,24 @@ int main(int argc, char *argv[]) {
     // initialized here
     char input;
 
-    // The value of the rate reductor for the read from the paraeters file is
-    // first set here. This is a counter that is decreased for each cycle in
-    // the main while loop. It is a way to reduce the number of reads from the
-    // parameters file
-    int reading_rate_reductor = get_param("input", "reading_rate_reductor");
+    // The value of the reading params interval for the read from the paraeters
+    // file is first set here. This is a counter that is decreased for each
+    // cycle in the main while loop. It is a way to reduce the number of reads
+    // from the parameters file. The parameter is given in seconds. In order to
+    // calculate the number of iterations needed to approximately achieve the
+    // desired reading rate, the value given needs to be divided by the
+    // interval.
+    int reading_params_interval =
+        round(get_param("input", "reading_params_interval") / 0.1);
+    // Also note that reading_params_interval should always be bigger
+    // than the interval of the fuction, because reading from file is a slow
+    // operation and should be done with low frequency. If the user sets the
+    // interval too low and the reading params interval goes under 1 then is
+    // set again to 1, because remember that this is a counter in the main loop
+    if (reading_params_interval < 1)
+        reading_params_interval = 1;
 
-    // Timeout sets the time in nanoseconds that getch should wait if no
+    // Timeout sets the time in milliseconds that getch should wait if no
     // input is received. This is the equivalent of having: usleep(100000)
     // non_blocking_getch()
     timeout(100);
@@ -343,12 +353,17 @@ int main(int argc, char *argv[]) {
                &drone_current_velocity.y_component);
         Sem_post(sem_velocity);
 
-        // Updating constants at runtime when the reading_rate_reductor goes to
-        // 0
-        if (!reading_rate_reductor--) {
-            reading_rate_reductor = get_param("input", "reading_rate_reductor");
-            force_step            = get_param("input", "force_step");
-            max_force             = get_param("input", "max_force");
+        // Updating constants at runtime when the reading_params_interval goes
+        // to 0
+        if (!reading_params_interval--) {
+            reading_params_interval =
+                get_param("input", "reading_params_interval") /
+                0.1;
+            if (reading_params_interval < 1)
+                reading_params_interval = 1;
+            force_step = get_param("input", "force_step");
+            max_force  = get_param("input", "max_force");
+            logging(LOG_INFO, "Input has updated its parameters");
         }
 
         // Getting user input if present

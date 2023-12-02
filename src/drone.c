@@ -2,6 +2,7 @@
 #include "dataStructs.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,8 +99,14 @@ int main(int argc, char *argv[]) {
     drone_current_velocity.y_component = 0;
 
     // Here the number of cycles to wait before reading again from file is
-    // read from the paramaters file
-    int reading_rate_reductor = get_param("drone", "reading_rate_reductor");
+    // calculated after reading from the paramaters file. To have a better
+    // explaination of what's happening in these lines look at the comment of
+    // reading_params_interval inside the input.c file
+    int reading_params_interval =
+        round(get_param("drone", "reading_params_interval") / T);
+    // If the counter is less than 1 is set back to 1
+    if (reading_params_interval < 1)
+        reading_params_interval = 1;
 
     // Initialize semaphors
     sem_t *sem_position =
@@ -119,18 +126,26 @@ int main(int argc, char *argv[]) {
         Mmap(NULL, MAX_SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
 
     while (1) {
-        // If reading_rate_reductor is equal to 0 is time to read again from the
-        // parameters file
-        if (!reading_rate_reductor--) {
-            // The first parameter to be read is the reading_rate_reductor
+        // If reading_params_interval is equal to 0 is time to read again from
+        // the parameters file
+        if (!reading_params_interval--) {
+            // The first parameter to be read is the reading_params_interval
             // itself.
-            reading_rate_reductor = get_param("drone", "reading_rate_reductor");
+            reading_params_interval =
+                round((float)get_param("drone", "reading_params_interval") / T);
+            // If the counter is less than 1 is set back to 1
+            if (reading_params_interval < 1)
+                reading_params_interval = 1;
+
             // Then all the other phisic parameters are read
             M              = get_param("drone", "mass");
             T              = get_param("drone", "time_step");
             K              = get_param("drone", "viscous_coefficient");
             function_scale = get_param("drone", "function_scale");
             area_of_effect = get_param("drone", "area_of_effect");
+
+            // Logging
+            logging(LOG_INFO, "Drone has updated its parameters");
         }
         // The semaphore is taken in order to read the force components as
         // given by the user in the input process
@@ -199,6 +214,23 @@ int main(int argc, char *argv[]) {
                  (M / (T * T)) * (yt_2 - 2 * yt_1) + (K / T) * yt_1) /
                 ((M / (T * T)) + K / T);
         }
+
+        // These ifs enforce the boundary of the simulation. These are needed
+        // because if the force is set too high it's possible that the next
+        // calculated x or y coordinate will completely jump over the border
+        // effect. It's also important to notice that, for example when the
+        // position is less than 0 it's then set at 1. This to overcome the
+        // infinite force that is given by the 0 position because the function
+        // that models the repulsive force of the wall has an asymptote in 0.
+        // The same goes for all the other walls.
+        if (drone_current_position.x > SIMULATION_WIDTH)
+            drone_current_position.x = SIMULATION_WIDTH - 1;
+        else if (drone_current_position.x < 0)
+            drone_current_position.x = 1;
+        if (drone_current_position.y < 0)
+            drone_current_position.y = 1;
+        else if (drone_current_position.y > SIMULATION_HEIGHT)
+            drone_current_position.y = 1;
 
         // The current velocity is calculated by dividing the
         // difference of position by the time step between the calculations

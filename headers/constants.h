@@ -20,4 +20,8 @@
 #define SIMULATION_HEIGHT 500
 #define ZERO_THRESHOLD 0.1
 
+#define LOG_INFO "INFO"
+#define LOG_WARN "WARN"
+#define LOG_ERROR "ERROR"
+
 #endif // !CONSTANTS_H

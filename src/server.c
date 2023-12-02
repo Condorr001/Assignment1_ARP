@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "dataStructs.h"
+#include "utils/utils.h"
 #include "wrapFuncs/wrapFunc.h"
 #include <fcntl.h>
 #include <signal.h>
@@ -80,8 +81,8 @@ int main(int argc, char *argv[]) {
         struct velocity drone_current_velocity;
         struct force drone_current_force;
 
-        // Declaring the logfile pointer
-        FILE *F0;
+        // Declaring the logfile aux buffer
+        char logmsg[100];
 
         while (1) {
             // Taking the semaphores to write into the shared memory areas
@@ -100,26 +101,20 @@ int main(int argc, char *argv[]) {
                    &drone_current_force.x_component,
                    &drone_current_force.y_component);
 
-            // Write all the info in the logfile
-            F0 = Fopen(LOGFILE_PATH, "a");
-            // Locking the logfile since also the WD can write into it
-            Flock(fileno(F0), LOCK_EX);
-            // Printing the drone info in the logfile
-            fprintf(
-                F0,
-                "[INFO] - The x-y position of the drone is: %f %f\n"
-                "[INFO] - The x-y components of the drone velocity are: %f %f\n"
-                "[INFO] - The x-y components of the drone force are: %f %f\n",
-                drone_current_pos.x, drone_current_pos.y,
-                drone_current_velocity.x_component,
-                drone_current_velocity.y_component,
-                drone_current_force.x_component,
-                drone_current_force.y_component);
+            sprintf(logmsg, "The x-y position of the drone is: %f %f",
+                    drone_current_pos.x, drone_current_pos.y);
+            logging(LOG_INFO, logmsg);
+            sprintf(logmsg,
+                    "The x-y components of the drone velocity are: %f %f",
+                    drone_current_velocity.x_component,
+                    drone_current_velocity.y_component);
+            logging(LOG_INFO, logmsg);
 
-            // Unlocking the file so that the WD can access it again
-            Flock(fileno(F0), LOCK_UN);
-            Fclose(F0);
-
+            sprintf(logmsg,
+                    "The x-y components of the drone force are: %f %f",
+                    drone_current_force.x_component,
+                    drone_current_force.y_component);
+            logging(LOG_INFO, logmsg);
             // Releasing the semaphores
             Sem_post(sem_position);
             Sem_post(sem_velocity);
