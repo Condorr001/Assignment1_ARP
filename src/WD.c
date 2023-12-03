@@ -39,6 +39,7 @@ void signal_handler(int signo, siginfo_t *info, void *context) {
     (void)(info);
     (void)(context);
 
+    // A process responded to SIGUSR1 so increase count
     if (signo == SIGUSR2)
         count++;
 }

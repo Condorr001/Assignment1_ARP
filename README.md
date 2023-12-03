@@ -65,7 +65,7 @@ displays it on the screen. As a consequence, the drone can be seen moving in the
 The primitives used by the map are:
 - Kill(): used to send a signal to the WD to tell that it's alive
 - Sigaction(): used to initialize the signal handler to handle the signal sent by the WD
-- Mkfifo(): used to create a FIFO (named pipe) to send both its PID and its parent PID (so the PID of the Konsole running it) to the WD
+- Mkfifo(): used to create a FIFO (named pipe) to send its PID 
 - Open(), Close(): used to open and close the file descriptor associated to the FIFO
 - Write(): used to write in the FIFO
 - Sem_open() Sem_wait(), Sem_post(), Sem_unlink(), Sem_close(): used to manage the semaphores declared in the server
