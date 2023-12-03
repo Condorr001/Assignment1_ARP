@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     sscanf(input_pid_str, "%d", &p_pids[0]);
 
     // Printing the received input pid to verify its correctness
-    printf("\nInput pid is %s\n", input_pid_str);
+    printf("Input pid is %s\n", input_pid_str);
 
     // Getting both the map pid and the pid of the Konsole running map through
     // the named pipe

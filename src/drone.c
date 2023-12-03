@@ -192,7 +192,8 @@ int main(int argc, char *argv[]) {
         // has to came into play only when there is no repulsive force from the
         // walls and no force is applied by the user, so when the drone is
         // decelerating only by viscous coefficient. The same applies for
-        // the x and y components
+        // the x and y components. It's not possible to directly set velocity to
+        // 0 so instead the current position is set equal to the previous one
         if (drone_current_velocity.x_component < ZERO_THRESHOLD &&
             drone_current_velocity.x_component > -ZERO_THRESHOLD &&
             walls.x_component == 0 && drone_force.x_component == 0)
@@ -234,7 +235,10 @@ int main(int argc, char *argv[]) {
 
         // The current velocity is calculated by dividing the
         // difference of position by the time step between the calculations
-        // both for the x and y axis
+        // both for the x and y axis. This calculation is done here to 
+        // always have the most updated velocity calculation in the input
+        // Konsole. It delays by one iteration the check of velocity zero,
+        // but it's not parcituculary detrimenting to the simulation
         drone_current_velocity.x_component =
             (drone_current_position.x - xt_1) / T;
         drone_current_velocity.y_component =

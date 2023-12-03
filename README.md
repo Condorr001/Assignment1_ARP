@@ -28,7 +28,7 @@ Group name: ConTo
 ### Building dependencies
 To build this project the following dependencies are needed:
 + make
-+ cmake version > 3.6
++ CMake version > 3.6
 + c compiler
 + libncurses
 ### Command to run the program
@@ -48,14 +48,14 @@ The active components of this project are:
 - Watchdog (WD)
 #### Server
 The main role of the **server** process is to read from the shared memory areas in
-order to periodically update the logfile with the drone info. For this purpose, the server is responsible of initializing the semaphores to access the shared memory areas. Moreover, by means of a *fork()*, it spawns the **map** process. 
+order to periodically update the log file with the drone info. For this purpose, the server is responsible for initializing the semaphores to access the shared memory areas. Moreover, by means of a *fork()*, it spawns the **map** process. 
 The primitives used by the server are:
 - Kill(): used to send a signal to the WD to tell that it's alive
 - Sigaction(): used to initialize the signal handler to handle the signal sent by the WD
 - Fork(): used to create a child process which can spawn the map
 - Sem_open(), Sem_init(), Sem_wait(), Sem_post(), Sem_unlink(), Sem_close(): used to manage the semaphores
-- Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), munmap(): used to manage the shared memory
-- Fopen(), Fclose: used to open and close a file located in a specific path (in this case, the logfile)
+- Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), Munmap(): used to manage the shared memory
+- Fopen(), Fclose: used to open and close a file located in a specific path (in this case, the log file)
 - Flock(): used to lock/unlock the file when multiple processes can access it
 - Execvp(): used to spawn the map
 
@@ -65,9 +65,9 @@ displays it on the screen. As a consequence, the drone can be seen moving in the
 The primitives used by the map are:
 - Kill(): used to send a signal to the WD to tell that it's alive
 - Sigaction(): used to initialize the signal handler to handle the signal sent by the WD
-- Mkfifo(): used to create a fifo (named pipe) to send both its PID and its parent PID (so the pid of the Konsole running it) to the WD
-- Open(), Close(): used to open and close the file descriptor associated to the fifo
-- Write(): used to write in the fifo
+- Mkfifo(): used to create a FIFO (named pipe) to send both its PID and its parent PID (so the PID of the Konsole running it) to the WD
+- Open(), Close(): used to open and close the file descriptor associated to the FIFO
+- Write(): used to write in the FIFO
 - Sem_open() Sem_wait(), Sem_post(), Sem_unlink(), Sem_close(): used to manage the semaphores declared in the server
 - Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), munmap(): used to manage the shared memory
 
@@ -99,7 +99,7 @@ For the y coordinate the formula is the same. This describes the dynamics of the
 The primitives used by the drone are:
 - Kill(): used to send a signal to the WD to tell that it's alive
 - Sigaction(): used to initialize the signal handler to handle the signal sent by the WD
-- Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), munmap(): used to manage the shared memory
+- Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), Munmap(): used to manage the shared memory
 - Sem_open(), Sem_wait(), Sem_post(), Sem_unlink(), Sem_close(): used to manage the semaphores declared in the server
 
 #### Input
@@ -125,14 +125,14 @@ The eight external keys can be used to move the drone by adding a force in the r
 The primitives used by the input are:
 - Kill(): used to send a signal to the WD to tell that it's alive
 - Sigaction(): used to initialize the signal handler to handle the signal sent by the WD
-- Mkfifo(): used to create a fifo (named pipe) to send its pid to the WD
-- Open(), Close(): used to open and close the file descriptor associated to the fifo
-- Write(): used to write in the fifo
+- Mkfifo(): used to create a FIFO (named pipe) to send its PID to the WD
+- Open(), Close(): used to open and close the file descriptor associated to the FIFO
+- Write(): used to write in the FIFO
 - Sem_open() Sem_wait(), Sem_post(), Sem_unlink(), Sem_close(): used to manage the semaphores declared in the server
-- Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), munmap(): used to manage the shared memory
+- Shm_open(), Ftruncate(), Mmap(), Shm_unlink(), Munmap(): used to manage the shared memory
 
 #### Watchdog
-The **watchdog** is resposible for checking the correct execution of all the other processes. For this purpose, the WD sends the SIGUSR1 signal to all the processes. Then, two checks are made. Firstly, it verifies that the processes are alive by checking if the *kill* syscall returns an error and immediately kills all the processes if this happens.
+The **watchdog** is responsible for checking the correct execution of all the other processes. For this purpose, the WD sends the SIGUSR1 signal to all the processes. Then, two checks are made. Firstly, it verifies that the processes are alive by checking if the *kill* syscall returns an error and immediately kills all the processes if this happens.
 Secondly, it verifies that the processes are not frozen by waiting for a SIGUSR2 reply by each process. In case that this signal is not received, meaning
 that the process is frozen, the WD kills all the processes.
 
@@ -155,10 +155,10 @@ The project is structured as follows:
 │   ├── CMakeLists.txt
 │   ├── constants.h ---------------------------> Contains all the constants used in the project
 │   ├── dataStructs.h
-│   ├── utils ---------------------------------> Contains headers and .c file for utility functions related to the configuration file
+│   ├── utils ---------------------------------> Contains headers and .c file for utility functions 
 │   │   ├── utils.c
 │   │   └── utils.h
-│   └── wrapFuncs -----------------------------> Contains headers and .c file that implement all the syscall used in the project with errors checking included
+│   └── wrapFuncs -----------------------------> Contains headers and .c file that implement wrappers for all the syscall that return a perror used in the project with errors checking included
 │       ├── wrapFunc.c
 │       └── wrapFunc.h
 ├── README.md
