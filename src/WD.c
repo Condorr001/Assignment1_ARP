@@ -114,11 +114,10 @@ int main(int argc, char *argv[]) {
     // running map in a separate int variable.
     // This because the Konsole(s) do not receive nor send signals to the WD,
     // but only need to be killed if a process freezes or dies
-    sscanf(map_pids_str, "%d|%d", &p_pids[1], &map_konsole_input);
+    sscanf(map_pids_str, "%d", &p_pids[1]);
 
     // Printing the received pids to verify their correctness
-    printf("Map pid is %d and the konsole terminal on which it runs is %d \n",
-           p_pids[1], map_konsole_input);
+    printf("Map pid is %d \n", p_pids[1]);
 
     while (1) {
         // Iterate for the number of processes to check

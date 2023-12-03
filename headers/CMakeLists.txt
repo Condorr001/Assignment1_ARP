@@ -1,5 +1,6 @@
 project("Assignment1_ARP_ConTo")
 
+# Setting macros for files
 set(WRAP_FUNC_FILES
     wrapFuncs/wrapFunc.h
     wrapFuncs/wrapFunc.c)
@@ -8,9 +9,11 @@ set(UTILS_FILES
     utils/utils.h
     utils/utils.c)
 
+# Setting libraries names for those files
 add_library(wrapFunc ${WRAP_FUNC_FILES})
 add_library(utils ${UTILS_FILES})
 
+# setting the building interface in order to have a correct include interface
 target_include_directories(
     wrapFunc
     PUBLIC
@@ -23,9 +26,11 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../headers>
     )
 
+# Adding header only libraries
 add_library(constants INTERFACE)
 add_library(datastructs INTERFACE)
 
+# Adding files for those libraries
 target_include_directories(
     constants
     INTERFACE

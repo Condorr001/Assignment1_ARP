@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Printting the pids
+    // Printing the pids
     printf("Server pid is %d\n", child[0]);
     printf("Drone pid is %d\n", child[1]);
     printf("Konsole of Input pid is %d\n", child[2]);

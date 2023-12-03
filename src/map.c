@@ -86,17 +86,15 @@ int main(int argc, char *argv[]) {
 
     // Getting the map pid
     int map_pid = getpid();
-    char map_pids_str[20];
-    // in this way both the pid of the map process and
-    // the pid of the konsole that is running the map
-    // process is passed. getppid returns the father of the map process which is
-    // the konsole process
-    sprintf(map_pids_str, "%d|%d", map_pid, getppid());
+    char map_pid_str[10];
+
+    // Here the pid of the map process is passed to the WD
+    sprintf(map_pid_str, "%d", map_pid);
 
     // Writing to the fifo the previously formatted string
     int fd;
     fd = Open(FIFO1_PATH, O_WRONLY);
-    Write(fd, map_pids_str, strlen(map_pids_str) + 1);
+    Write(fd, map_pid_str, strlen(map_pid_str) + 1);
     Close(fd);
 
     // Setting up the struct in which to store the position of the drone
