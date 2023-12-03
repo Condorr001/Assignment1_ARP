@@ -19,24 +19,21 @@ int main(int argc, char *argv[]) {
     (void)(argc);
     (void)(argv);
 
-    // Define the number of programs to spawn
-    int num_children = NUM_PROCESSES;
-
     // Define an array of strings for every process to spawn
-    char programs[num_children][20];
+    char programs[NUM_PROCESSES][20];
     strcpy(programs[0], "./server");
     strcpy(programs[1], "./drone");
     strcpy(programs[2], "./input");
     strcpy(programs[3], "./WD");
 
     // Pids for all children
-    pid_t child[num_children];
+    pid_t child[NUM_PROCESSES];
 
     // String to contain all che children pids (except WD)
-    char child_pids_str[num_children - 1][80];
+    char child_pids_str[NUM_PROCESSES - 1][80];
 
     // Cycle neeeded to fork the correct number of childs
-    for (int i = 0; i < num_children; i++) {
+    for (int i = 0; i < NUM_PROCESSES; i++) {
         child[i] = Fork();
         if (!child[i]) {
             // Spawn the first process, which is the server
@@ -51,15 +48,15 @@ int main(int argc, char *argv[]) {
                 Execvp("konsole", tmp);
             }
             // Spawn the drone process
-            if (i > 0 && i < num_children - 1) {
+            if (i > 0 && i < NUM_PROCESSES - 1) {
                 char *arg_list[] = {programs[i], NULL};
                 spawn(arg_list);
             }
 
             // spawn the last program, so the WD, which needs all the processes
             // PIDs
-            if (i == num_children - 1) {
-                for (int i = 0; i < num_children - 1; i++)
+            if (i == NUM_PROCESSES - 1) {
+                for (int i = 0; i < NUM_PROCESSES - 1; i++)
                     sprintf(child_pids_str[i], "%d", child[i]);
 
                 // Sending as arguments to the WD all the processes PIDs
@@ -79,8 +76,10 @@ int main(int argc, char *argv[]) {
     // Value for waiting for the children to terminate
     int res;
 
-    // Wait for all children to terminate
-    for (int i = 0; i < num_children; i++) {
+    // Wait for all direct children to terminate. Map and the konsole on which
+    // it runs on are not direct childs of the master process but of the server
+    // one so they will not return here
+    for (int i = 0; i < NUM_PROCESSES; i++) {
         int ret = Wait(&res);
         // Getting the exit status
         int status = 0;

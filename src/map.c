@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
     Sigaction(SIGUSR1, &sa, NULL);
 
     // Named pipe (fifo) to send the pid to the WD
-    int fd;
     Mkfifo(FIFO1_PATH, 0666);
 
     // Getting the map pid
@@ -95,6 +94,7 @@ int main(int argc, char *argv[]) {
     sprintf(map_pids_str, "%d|%d", map_pid, getppid());
 
     // Writing to the fifo the previously formatted string
+    int fd;
     fd = Open(FIFO1_PATH, O_WRONLY);
     Write(fd, map_pids_str, strlen(map_pids_str) + 1);
     Close(fd);

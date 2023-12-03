@@ -7,6 +7,7 @@
 #define SEM_PATH_POSITION "/sem_position"
 #define SEM_PATH_FORCE "/sem_force"
 #define SEM_PATH_VELOCITY "/sem_velocity"
+
 #define LOGFILE_PATH "log/log.log"
 #define FIFO1_PATH "/tmp/fifo_one"
 #define FIFO2_PATH "/tmp/fifo_two"
