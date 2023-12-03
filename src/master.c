@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
     strcpy(programs[0], "./server");
     strcpy(programs[1], "./drone");
     strcpy(programs[2], "./input");
-    strcpy(programs[3], "./WD");
+    strcpy(programs[3], "./map");
+    strcpy(programs[4], "./WD");
 
     // Pids for all children
     pid_t child[NUM_PROCESSES];
@@ -36,19 +37,11 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < NUM_PROCESSES; i++) {
         child[i] = Fork();
         if (!child[i]) {
-            // Spawn the first process, which is the server
-            if (i == 0) {
-                char *arg_list[] = {programs[i], NULL};
-                spawn(arg_list);
-            }
-
             // Spawn the input process using konsole
-            if (i == 2) {
+            if (i == 2 || i == 3) {
                 char *tmp[] = {"konsole", "-e", programs[i], NULL};
                 Execvp("konsole", tmp);
-            }
-            // Spawn the drone process
-            if (i > 0 && i < NUM_PROCESSES - 1) {
+            } else if (i < NUM_PROCESSES - 1) {
                 char *arg_list[] = {programs[i], NULL};
                 spawn(arg_list);
             }
@@ -60,8 +53,9 @@ int main(int argc, char *argv[]) {
                     sprintf(child_pids_str[i], "%d", child[i]);
 
                 // Sending as arguments to the WD all the processes PIDs
-                char *arg_list[] = {programs[i], child_pids_str[0],
-                                    child_pids_str[1], child_pids_str[2], NULL};
+                char *arg_list[] = {programs[i],       child_pids_str[0],
+                                    child_pids_str[1], child_pids_str[2],
+                                    child_pids_str[3], NULL};
                 spawn(arg_list);
             }
         }
@@ -71,7 +65,8 @@ int main(int argc, char *argv[]) {
     printf("Server pid is %d\n", child[0]);
     printf("Drone pid is %d\n", child[1]);
     printf("Konsole of Input pid is %d\n", child[2]);
-    printf("WD pid is %d\n", child[3]);
+    printf("Konsole of Map pid is %d\n", child[3]);
+    printf("WD pid is %d\n", child[4]);
 
     // Value for waiting for the children to terminate
     int res;

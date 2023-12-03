@@ -22,7 +22,7 @@
 int p_pids[NUM_PROCESSES + 2];
 
 // Pid of the konsole executing input and the map processes
-int pid_konsole_input, pid_konsole_map;
+int pid_konsole_input, map_konsole_input;
 
 // Count to check whether process has replied to WD
 int count = 0;
@@ -62,10 +62,12 @@ int main(int argc, char *argv[]) {
     // argv[1] -> server
     // argv[2] -> drone
     // argv[3] -> konsole of input
+    // argv[4] -> konsole of map
     if (argc == NUM_PROCESSES) {
         for (int i = 0; i < 2; i++)
             sscanf(argv[i + 1], "%d", &p_pids[i + 2]);
         sscanf(argv[3], "%d", &pid_konsole_input);
+        sscanf(argv[4], "%d", &map_konsole_input);
     } else {
         perror("arg_list error");
         exit(1);
@@ -112,15 +114,15 @@ int main(int argc, char *argv[]) {
     // running map in a separate int variable.
     // This because the Konsole(s) do not receive nor send signals to the WD,
     // but only need to be killed if a process freezes or dies
-    sscanf(map_pids_str, "%d|%d", &p_pids[1], &pid_konsole_map);
+    sscanf(map_pids_str, "%d|%d", &p_pids[1], &map_konsole_input);
 
     // Printing the received pids to verify their correctness
     printf("Map pid is %d and the konsole terminal on which it runs is %d \n",
-           p_pids[1], pid_konsole_map);
+           p_pids[1], map_konsole_input);
 
     while (1) {
         // Iterate for the number of processes to check
-        for (int i = 0; i < NUM_PROCESSES; i++) {
+        for (int i = 0; i < NUM_PROCESSES - 1; i++) {
             // Saving the return value of the kill so that it is possible to
             // immediately verify if the kill failed, so if a process died
             check = Kill2(p_pids[i], SIGUSR1);
@@ -153,13 +155,13 @@ int main(int argc, char *argv[]) {
                 logging(LOG_WARN, logmsg);
 
                 // Killing all processes, except Konsole's
-                for (int i = 0; i < NUM_PROCESSES; i++) {
+                for (int i = 0; i < NUM_PROCESSES - 1; i++) {
                     Kill2(p_pids[i], SIGKILL);
                 }
 
                 /// Killing Konsole's
                 Kill2(pid_konsole_input, SIGKILL);
-                Kill2(pid_konsole_map, SIGKILL);
+                Kill2(map_konsole_input, SIGKILL);
 
                 // Exiting with success
                 return EXIT_SUCCESS;
